@@ -1,0 +1,195 @@
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  # ── Configuration guard ────────────────────────────────────────────────────
+  # Runs first.  Exits 1 if any required value is still a placeholder.
+  # All other services depend on this completing successfully.
+  validate-config:
+    image: busybox
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASSWORD=${MINIO_PASSWORD}
+      - KC_DB_PASSWORD=${KC_DB_PASSWORD}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - KEYCLOAK_ISSUER_URL=${KEYCLOAK_ISSUER_URL}
+      - KEYCLOAK_HOSTNAME=${KEYCLOAK_HOSTNAME}
+    command:
+      - sh
+      - -c
+      - |
+        FAIL=0
+        check() {
+          NAME="$$1"; VAL="$$2"
+          if [ -z "$$VAL" ]; then
+            echo "  [MISSING] $$NAME is not set"
+            FAIL=1
+          elif [ "$$VAL" = "CHANGE_ME" ]; then
+            echo "  [DEFAULT] $$NAME is still at placeholder value"
+            FAIL=1
+          fi
+        }
+        echo ""
+        echo "=== Gotch4 configuration check ==="
+        check DB_USER                 "$$DB_USER"
+        check DB_PASSWORD             "$$DB_PASSWORD"
+        check MINIO_USER              "$$MINIO_USER"
+        check MINIO_PASSWORD          "$$MINIO_PASSWORD"
+        check KC_DB_PASSWORD          "$$KC_DB_PASSWORD"
+        check KEYCLOAK_ADMIN_PASSWORD "$$KEYCLOAK_ADMIN_PASSWORD"
+        check CORS_ORIGINS            "$$CORS_ORIGINS"
+        check KEYCLOAK_ISSUER_URL     "$$KEYCLOAK_ISSUER_URL"
+        check KEYCLOAK_HOSTNAME       "$$KEYCLOAK_HOSTNAME"
+        echo "==================================="
+        echo ""
+        if [ "$$FAIL" -ne 0 ]; then
+          echo "  Startup blocked. Fill in all CHANGE_ME values in .env"
+          echo "  Run: cp .env.example .env && nano .env"
+          echo ""
+          exit 1
+        fi
+        echo "  All required values configured."
+        echo ""
+    restart: "no"
+    networks:
+      - app-network
+
+  # ── App database ───────────────────────────────────────────────────────────
+  database:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=capture
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d capture"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      validate-config:
+        condition: service_completed_successfully
+    networks:
+      - app-network
+
+  # ── MinIO object storage ───────────────────────────────────────────────────
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - ./minio_data:/data
+    restart: unless-stopped
+    depends_on:
+      validate-config:
+        condition: service_completed_successfully
+    networks:
+      - app-network
+
+  # ── Keycloak database ──────────────────────────────────────────────────────
+  keycloak-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=${KC_DB_PASSWORD}
+    volumes:
+      - ./keycloak_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    depends_on:
+      validate-config:
+        condition: service_completed_successfully
+    networks:
+      - app-network
+
+  # ── Keycloak ───────────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    command: start
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=${KC_DB_PASSWORD}
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_HTTP_PORT=8080
+      - KC_HOSTNAME=${KEYCLOAK_HOSTNAME}
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HTTP_ENABLED=true
+      - JAVA_OPTS_APPEND=-Djdk.tls.rejectClientInitiatedRenegotiation=true -Xms64m -Xmx256m
+      - KC_HEALTH_ENABLED=true
+    ports:
+      - "8080:8080"
+    depends_on:
+      validate-config:
+        condition: service_completed_successfully
+      keycloak-db:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 120s
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Backend/dockerfile
+      args:
+        - VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}
+        - VITE_APP_URL=${VITE_APP_URL}
+        - VITE_KEYCLOAK_REALM=gotch4
+        - VITE_KEYCLOAK_CLIENT_ID=gotch4-spa
+        - VITE_API_URL=${VITE_APP_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/capture
+      - PORT=3000
+      - WEBHOOK_URL=${VITE_APP_URL}/webhook
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=${MINIO_USER}
+      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
+      - MINIO_BUCKET=exploits
+      - MINIO_USE_SSL=false
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_ISSUER_URL=${KEYCLOAK_ISSUER_URL}
+      - KEYCLOAK_REALM=gotch4
+      - KEYCLOAK_CLIENT_ID=gotch4-spa
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    volumes:
+      - ./Backend/uploads:/app/uploads
+    depends_on:
+      validate-config:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network

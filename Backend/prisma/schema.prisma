@@ -1,0 +1,223 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Program {
+  id           Int            @id @default(autoincrement())
+  name         String
+  description  String?
+  scope        String?
+  notes        String?
+  status       String         @default("active")
+  isFavorite   Boolean        @default(false)
+  events       Event[]
+  files        File[]
+  payloads     Payload[]
+  grabKeyMetas GrabKeyMeta[]
+  ezCaptures   EzCapture[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([status])
+  @@index([isFavorite])
+  @@index([createdAt])
+}
+
+model File {
+  id         Int      @id @default(autoincrement())
+  filename   String   @unique
+  urlPath    String   @unique
+  mimetype   String
+  size       Int
+  path       String
+  notes      String?
+  isPublic   Boolean  @default(true)
+  detectHit  Boolean  @default(false)
+  programId  Int?
+  program    Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([programId])
+  @@index([createdAt])
+}
+
+model Event {
+  id            Int      @id @default(autoincrement())
+  type          String   @default("http") // "http" | "dns"
+
+  // HTTP fields
+  method        String?
+  path          String?
+  fullUrl       String?
+  query         String?
+  headers       String?
+  body          String?
+  userAgent     String?
+  referer       String?
+  host          String?
+  protocol      String?
+  contentType   String?
+  contentLength Int?
+  cookies       String?
+
+  // DNS fields
+  dnsQuery      String?  // Full DNS query name
+  dnsType       String?  // A, AAAA, TXT, MX, etc.
+
+  // Common fields
+  ipAddress     String?
+  notes         String?
+  programId     Int?
+  program       Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([programId])
+  @@index([method])
+  @@index([ipAddress])
+  @@index([dnsQuery])
+}
+
+model Grab {
+  id        Int      @id @default(autoincrement())
+  key       String
+  method    String
+  headers   String
+  query     String?
+  body      String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([key])
+  @@index([createdAt])
+}
+
+// Links a grab key to a program (optional, manual)
+model GrabKeyMeta {
+  key       String   @id
+  programId Int?
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([programId])
+}
+
+model PayloadCategory {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  color       String?
+  order       Int       @default(0)
+  payloads    Payload[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([order])
+}
+
+model Payload {
+  id          Int             @id @default(autoincrement())
+  name        String
+  content     String
+  description String?
+  categoryId  Int
+  category    PayloadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tags        String?
+  isFavorite  Boolean         @default(false)
+  programId   Int?
+  program     Program?        @relation(fields: [programId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([categoryId])
+  @@index([isFavorite])
+  @@index([programId])
+  @@index([createdAt])
+}
+
+model EzCapture {
+  id              Int      @id @default(autoincrement())
+  uri             String?
+  origin          String?
+  referer         String?
+  userAgent       String?
+  cookies         String?
+  localStorage    String?  // JSON string {"key":"value"}
+  sessionStorage  String?  // JSON string
+  dom             String?  // Full page outerHTML (large)
+  screenshotPath  String?  // MinIO path e.g. "ez/screenshots/abc.png"
+  extra           String?  // JSON string from ez_a() custom fields
+  ipAddress       String?
+  programId       Int?
+  program         Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([origin])
+  @@index([programId])
+}
+
+model Settings {
+  id            Int      @id @default(autoincrement())
+
+  // DNS Configuration - Common
+  dnsEnabled    Boolean  @default(false)
+  dnsMode       String   @default("local") // "local" | "remote"
+  dnsBaseDomain String?  // e.g., "collab.yourdomain.com"
+  dnsTtl        Int      @default(0) // Time-to-live (0 = no cache)
+
+  // DNS Configuration - Local Mode
+  dnsResponseIp String?  // Public IP to return in A records (local mode only)
+
+  // DNS Configuration - Remote Mode (VPS)
+  dnsVpsUrl     String?  // URL/IP of VPS running DNS server
+  dnsWebhookUrl String?  // Callback URL for VPS to send queries (Cloudflare Tunnel URL)
+  dnsAuthToken  String?  // Authentication token for VPS→App communication
+
+  // Webhook Configuration
+  webhookUrl    String   @default("http://localhost:3000/webhook")
+  webhookDomain String?  // Auto-extracted from webhookUrl
+  webhookPath   String   @default("webhook") // Customizable capture path slug (no slashes)
+
+  // Notification Configuration
+  telegramEnabled   Boolean  @default(false)
+  telegramBotToken  String?
+  telegramChatId    String?
+  discordEnabled    Boolean  @default(false)
+  discordWebhookUrl String?
+  slackEnabled      Boolean  @default(false)
+  slackWebhookUrl   String?
+  emailEnabled      Boolean  @default(false)
+  emailSmtpHost     String?
+  emailSmtpPort     Int?     @default(587)
+  emailSmtpUser     String?
+  emailSmtpPass     String?
+  emailFrom         String?
+  emailTo           String?
+  notifyOnAllEvents Boolean  @default(false) // false = only notify when capture matches a program scope
+  notifyFieldConfig Json?    // M-13: native Json type for DB-level validation (was String?)
+  notifyTemplate    Json?    // M-13: native Json type for DB-level validation (was String?)
+
+  // EZ Capture Settings
+  ezCollectDom            Boolean @default(true)
+  ezCollectCookies        Boolean @default(true)
+  ezCollectLocalStorage   Boolean @default(true)
+  ezCollectSessionStorage Boolean @default(true)
+  ezCollectScreenshot     Boolean @default(false) // Off by default — adds 113KB to payload
+
+  // System Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

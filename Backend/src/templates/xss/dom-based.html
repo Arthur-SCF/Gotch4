@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DOM-Based XSS Test</title>
+</head>
+<body>
+    <h1>DOM-Based XSS Test</h1>
+    <div id="output"></div>
+    <script>
+        // Read from URL parameter and inject into DOM
+        const params = new URLSearchParams(window.location.search);
+        const userInput = params.get('input') || 'No input';
+        document.getElementById('output').innerHTML = userInput;
+    </script>
+    <p>Try: ?input=&lt;img src=x onerror=alert(1)&gt;</p>
+</body>
+</html>

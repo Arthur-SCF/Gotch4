@@ -1,0 +1,22 @@
+{
+  "name": "vps-dns-server",
+  "version": "1.0.0",
+  "description": "Standalone DNS server for remote bug bounty DNS capture",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "bun run server.js",
+    "dev": "bun run --watch server.js"
+  },
+  "keywords": [
+    "dns",
+    "bug-bounty",
+    "ssrf",
+    "security"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dns2": "^2.1.0"
+  }
+}

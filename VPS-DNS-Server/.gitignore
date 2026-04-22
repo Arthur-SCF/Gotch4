@@ -1,0 +1,14 @@
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+bun.lockb
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "vps-dns-server",
+      "dependencies": {
+        "dns2": "^2.1.0",
+      },
+    },
+  },
+  "packages": {
+    "dns2": ["dns2@2.1.0", "", {}, "sha512-m27K11aQalRbmUs7RLaz6aPyceLjAoqjPRNTdE7qUouQpl+PC8Bi67O+i9SuJUPbQC8dxFrczAxfmTPuTKHNkw=="],
+  }
+}

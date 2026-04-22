@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        #dropZone { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; }
+        #dropZone.highlight { border-color: #4CAF50; background-color: #f0f8f0; }
+        #result { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test</h1>
+
+    <div id="dropZone">
+        <p>Drag & Drop files here or click to select</p>
+        <input type="file" id="fileInput" multiple style="display:none">
+    </div>
+
+    <button onclick="uploadFiles()">Upload Selected Files</button>
+    <div id="result"></div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const result = document.getElementById('result');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('highlight');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('highlight');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('highlight');
+            fileInput.files = e.dataTransfer.files;
+            showSelectedFiles();
+        });
+
+        fileInput.addEventListener('change', showSelectedFiles);
+
+        function showSelectedFiles() {
+            const files = Array.from(fileInput.files);
+            result.innerHTML = `<strong>Selected:</strong> ${files.map(f => f.name).join(', ')}`;
+        }
+
+        async function uploadFiles() {
+            const formData = new FormData();
+            Array.from(fileInput.files).forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const response = await fetch('{{WEBHOOK_URL}}/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                result.innerHTML = `<strong>Upload Result:</strong> ${response.status} - ${response.statusText}`;
+            } catch (err) {
+                result.innerHTML = `<strong>Error:</strong> ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

