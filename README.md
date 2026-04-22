@@ -14,6 +14,8 @@ It provides:
 - File hosting with optional hit detection
 - Multi-channel notifications (Telegram, Discord, Slack, Email)
 
+<img width="1763" height="1186" alt="Screenshot from 2026-04-23 00-36-32" src="https://github.com/user-attachments/assets/43c93977-83de-433e-8ec9-629535a73cc3" />
+
 ## Tech Stack
 
 - Runtime: Bun
