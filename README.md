@@ -181,23 +181,6 @@ Main environment values are in root `.env`.
 
 Use `.env.example` as the source of truth and fill all required variables before startup. The compose stack includes a startup validation guard and blocks launch if placeholders remain.
 
-## Documentation for GitHub Wiki
-
-Wiki-ready documentation pages are included in `docs/wiki/`.
-
-You can copy these files directly into your GitHub Wiki repository:
-
-- `docs/wiki/Home.md`
-- `docs/wiki/Getting-Started.md`
-- `docs/wiki/Configuration.md`
-- `docs/wiki/Architecture.md`
-- `docs/wiki/API-Reference.md`
-- `docs/wiki/Operations-and-Deployment.md`
-- `docs/wiki/Security-Model.md`
-- `docs/wiki/Troubleshooting.md`
-- `docs/wiki/Contributing.md`
-- `docs/wiki/_Sidebar.md`
-
 ## Notes
 
 - This project is built for authorized security testing only.
