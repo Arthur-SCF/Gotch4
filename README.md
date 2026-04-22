@@ -40,7 +40,7 @@ It provides:
 ### 1. Clone and configure
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Arthur-SCF/Gotch4
 cd Gotch4
 cp .env.example .env
 ```
