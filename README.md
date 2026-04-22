@@ -87,9 +87,7 @@ bash keycloak-setup.sh MyAdminPass MyAppPass security_tester
 
 Keycloak treats bootstrap admin access as temporary/recovery access. For a safer setup, create a dedicated permanent admin and remove or disable the bootstrap admin account.
 
-Detailed step-by-step procedure:
-
-- [Keycloak: Replace Temporary Admin (Step-by-Step)](docs/wiki/Operations-and-Deployment.md#keycloak-replace-temporary-admin-step-by-step)
+Detailed step-by-step procedure in the Wiki page.
 
 ### 5. Open the app
 
