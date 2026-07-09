@@ -26,6 +26,7 @@ model Program {
   payloads     Payload[]
   grabKeyMetas GrabKeyMeta[]
   ezCaptures   EzCapture[]
+  interactionTokens InteractionToken[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -75,6 +76,11 @@ model Event {
   // DNS fields
   dnsQuery      String?  // Full DNS query name
   dnsType       String?  // A, AAAA, TXT, MX, etc.
+  dnsAnswer         String?  // What the DNS server returned (IP list / rebind answer / CNAME target / NODATA)
+  dnsRebindStrategy String?  // Rebinding strategy applied to this query: fs | ma | rr | rd (null for plain capture)
+
+  // Correlation — links a DNS lookup to its follow-up HTTP OOB hit from the same payload
+  correlationToken String?
 
   // Common fields
   ipAddress     String?
@@ -89,6 +95,7 @@ model Event {
   @@index([method])
   @@index([ipAddress])
   @@index([dnsQuery])
+  @@index([correlationToken])
 }
 
 model Grab {
@@ -110,6 +117,20 @@ model GrabKeyMeta {
   key       String   @id
   programId Int?
   program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([programId])
+}
+
+// Links a per-payload OOB interaction token to a program (optional, minted by the DNS/SSRF toolkit).
+// The same token is parsed from BOTH the DNS query name and the HTTP Host header, so a DNS lookup
+// and its follow-up HTTP hit correlate to one interaction and can auto-assign to a program.
+model InteractionToken {
+  token     String   @id
+  programId Int?
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  strategy  String?  // For rebind payloads: fs | ma | rr | rd. Null for plain capture tokens.
+  note      String?
+  createdAt DateTime @default(now())
 
   @@index([programId])
 }

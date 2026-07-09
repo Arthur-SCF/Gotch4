@@ -65,15 +65,29 @@ app.use("/*", async (c, next) => {
             req.header("cf-connecting-ip") ||
             "unknown";
 
+          const correlationToken = extractCorrelationToken(host, baseDomain);
+
           let programId: number | null = null;
           let programName: string | null = null;
           try {
-            const programs = await getProgramsWithScope();
-            for (const p of programs) {
-              if (matchScope(p.scope, host)) {
-                programId = p.id;
-                programName = p.name;
-                break;
+            if (correlationToken) {
+              const link = await sharedPrisma.interactionToken.findUnique({
+                where: { token: correlationToken },
+                include: { program: { select: { id: true, name: true } } },
+              });
+              if (link?.program) {
+                programId = link.program.id;
+                programName = link.program.name;
+              }
+            }
+            if (programId === null) {
+              const programs = await getProgramsWithScope();
+              for (const p of programs) {
+                if (matchScope(p.scope, host)) {
+                  programId = p.id;
+                  programName = p.name;
+                  break;
+                }
               }
             }
           } catch {}
@@ -92,6 +106,7 @@ app.use("/*", async (c, next) => {
               contentType,
               ipAddress,
               headers: JSON.stringify(Object.fromEntries(req.raw.headers.entries())),
+              correlationToken,
               programId,
               notes: "subdomain-detect",
             },
@@ -147,6 +162,7 @@ import { captureRouter, apiRouter as grabApiRouter } from "./routes/grab.ts";
 import { ezCaptureRouter, ezApiRouter } from "./routes/ez.ts";
 import settings from "./routes/settings.ts";
 import dnsCallback from "./routes/dnsCallback.ts";
+import interactions from "./routes/interactions.ts";
 import { getWebhookPath } from "./lib/webhookState.ts";
 import { getDnsState } from "./lib/dnsState.ts";
 import { prisma as sharedPrisma } from "./lib/prisma.ts";
@@ -154,6 +170,7 @@ import { broadcast } from "./lib/broadcast.ts";
 import { sendNotification } from "./lib/notify.ts";
 import { getProgramsWithScope } from "./lib/programScopeCache.ts";
 import { matchScope } from "./lib/scopeMatcher.ts";
+import { extractCorrelationToken } from "./lib/dnsEngine.ts";
 
 const routes = app
   .route("/api/events", events)
@@ -168,6 +185,7 @@ const routes = app
   .route("/ez", ezCaptureRouter)
   .route("/api/ez", ezApiRouter)
   .route("/api/dns", dnsCallback)
+  .route("/api/interactions", interactions)
   .route("/", settings);
 
 export type AppType = typeof routes;

@@ -20,6 +20,8 @@
 
 import dns2 from 'dns2';
 import { readFileSync, existsSync } from 'fs';
+import { planAnswer } from './dnsAnswer.ts';
+import { GRAMMAR_VERSION } from './dnsEngine.ts';
 
 const { Packet } = dns2;
 
@@ -114,8 +116,11 @@ function validateConfig(config) {
 
   if (!config.webhookUrl) {
     errors.push('WEBHOOK_URL is required (e.g., https://tunnel.example.com/api/dns/callback)');
-  } else if (!config.webhookUrl.startsWith('https://')) {
-    errors.push('WEBHOOK_URL must use HTTPS for security');
+  } else if (
+    !/^https:\/\//.test(config.webhookUrl) &&
+    !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(config.webhookUrl)
+  ) {
+    errors.push('WEBHOOK_URL must use HTTPS (http:// is allowed only for localhost testing)');
   }
 
   if (!config.authToken) {
@@ -210,60 +215,70 @@ async function main() {
     handle: async (request, send) => {
       const query = request.questions[0];
       const response = Packet.createResponseFromRequest(request);
+      const qtype = getQueryTypeName(query.type);
+      const ipAddress = request.address?.address || request.address || 'unknown';
 
-      // Only process queries for our domain
-      if (!query.name.endsWith(config.domain)) {
-        response.header.rcode = 3; // NXDOMAIN
+      const result = planAnswer({
+        fqdn: query.name,
+        qtype,
+        baseDomain: config.domain,
+        defaultIp: config.responseIp,
+        secret: config.authToken,
+        txtValue: 'Gotch4 DNS capture',
+        resolverIp: ipAddress,
+      });
+
+      // Names outside our zone: NXDOMAIN. Do not log/forward unrelated noise.
+      if (result.plan.kind === 'nxdomain') {
+        response.header.rcode = 3;
         send(response);
         return;
       }
 
-      // Extract client IP
-      const ipAddress = request.address?.address || request.address || 'unknown';
+      // Rebinding answers must not be cached, or the resolve-then-connect flip never lands.
+      const ttl = result.strategy ? 0 : config.ttl;
 
-      // Log query to console
-      console.log(`[DNS] ${query.name} (${getQueryTypeName(query.type)}) from ${ipAddress}`);
+      if (result.plan.kind === 'records') {
+        for (const rec of result.plan.records) {
+          if (rec.type === 'A') {
+            response.answers.push({
+              name: query.name,
+              type: Packet.TYPE.A,
+              class: Packet.CLASS.IN,
+              ttl,
+              address: rec.ip,
+            });
+          } else if (rec.type === 'TXT') {
+            response.answers.push({
+              name: query.name,
+              type: Packet.TYPE.TXT,
+              class: Packet.CLASS.IN,
+              ttl: config.ttl,
+              data: [rec.text],
+            });
+          }
+        }
+      }
+      // result.plan.kind === 'nodata' → NOERROR with an empty answer section (the name
+      // exists for other record types), never NXDOMAIN — else resolvers negative-cache it.
 
-      // Send to webhook (async, don't wait)
+      send(response);
+
+      console.log(`[DNS] ${query.name} (${qtype}) from ${ipAddress} -> ${result.summary}${result.strategy ? ` [${result.strategy}]` : ''}`);
+
       sendToWebhook(config, {
         query: query.name,
-        type: getQueryTypeName(query.type),
-        ipAddress: ipAddress,
+        type: qtype,
+        ipAddress,
         timestamp: new Date().toISOString(),
         protocol: request.address ? 'udp' : 'tcp',
+        token: result.token,
+        answer: result.summary,
+        strategy: result.strategy,
+        grammarVersion: GRAMMAR_VERSION,
       }).catch(err => {
         console.error('[Webhook] Failed:', err.message);
       });
-
-      // Respond to DNS query
-      if (query.type === Packet.TYPE.A) {
-        response.answers.push({
-          name: query.name,
-          type: Packet.TYPE.A,
-          class: Packet.CLASS.IN,
-          ttl: config.ttl,
-          address: config.responseIp,
-        });
-      } else if (query.type === Packet.TYPE.AAAA) {
-        // IPv6 - respond with ::1 or configured IPv6
-        response.answers.push({
-          name: query.name,
-          type: Packet.TYPE.AAAA,
-          class: Packet.CLASS.IN,
-          ttl: config.ttl,
-          address: '::1',
-        });
-      } else if (query.type === Packet.TYPE.TXT) {
-        response.answers.push({
-          name: query.name,
-          type: Packet.TYPE.TXT,
-          class: Packet.CLASS.IN,
-          ttl: config.ttl,
-          data: ['VPS DNS Capture Server'],
-        });
-      }
-
-      send(response);
     },
   });
 

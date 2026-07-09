@@ -4,6 +4,7 @@ import { API_URL } from "@/lib/config";
 
 interface UnreadState {
   events: number;
+  dns: number;
   ez: number;
   grab: number;
 }
@@ -11,13 +12,15 @@ interface UnreadState {
 interface UnreadContextValue {
   unread: UnreadState;
   clearEvents: () => void;
+  clearDns: () => void;
   clearEz: () => void;
   clearGrab: () => void;
 }
 
 const UnreadContext = createContext<UnreadContextValue>({
-  unread: { events: 0, ez: 0, grab: 0 },
+  unread: { events: 0, dns: 0, ez: 0, grab: 0 },
   clearEvents: () => {},
+  clearDns: () => {},
   clearEz: () => {},
   clearGrab: () => {},
 });
@@ -27,17 +30,19 @@ export function useUnread() {
 }
 
 export function UnreadProvider({ children }: { children: React.ReactNode }) {
-  const [unread, setUnread] = useState<UnreadState>({ events: 0, ez: 0, grab: 0 });
+  const [unread, setUnread] = useState<UnreadState>({ events: 0, dns: 0, ez: 0, grab: 0 });
 
   // Watch route changes and auto-clear the matching page's counter
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     if (pathname === "/security/events") setUnread((p) => ({ ...p, events: 0 }));
+    if (pathname === "/security/dns") setUnread((p) => ({ ...p, dns: 0 }));
     if (pathname === "/security/ezxss") setUnread((p) => ({ ...p, ez: 0 }));
     if (pathname === "/security/grab") setUnread((p) => ({ ...p, grab: 0 }));
   }, [pathname]);
 
   const clearEvents = () => setUnread((p) => ({ ...p, events: 0 }));
+  const clearDns = () => setUnread((p) => ({ ...p, dns: 0 }));
   const clearEz = () => setUnread((p) => ({ ...p, ez: 0 }));
   const clearGrab = () => setUnread((p) => ({ ...p, grab: 0 }));
 
@@ -63,7 +68,11 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
           const msg = JSON.parse(e.data);
           // new_event (singular, immediate) — fired by webhook/DNS handlers right after DB write
           if (msg.type === "new_event") {
-            if (window.location.pathname !== "/security/events") {
+            if (msg.event?.type === "dns") {
+              if (window.location.pathname !== "/security/dns") {
+                setUnread((p) => ({ ...p, dns: p.dns + 1 }));
+              }
+            } else if (window.location.pathname !== "/security/events") {
               setUnread((p) => ({ ...p, events: p.events + 1 }));
             }
           }
@@ -96,7 +105,7 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <UnreadContext.Provider value={{ unread, clearEvents, clearEz, clearGrab }}>
+    <UnreadContext.Provider value={{ unread, clearEvents, clearDns, clearEz, clearGrab }}>
       {children}
     </UnreadContext.Provider>
   );

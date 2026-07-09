@@ -4,6 +4,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "noEmit": true,
     "module": "esnext",
     "target": "esnext",

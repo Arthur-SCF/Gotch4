@@ -506,6 +506,21 @@
   }
 }
 
+@keyframes dns-flash {
+  0% {
+    background-color: color-mix(in oklab, var(--primary) 7%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 1px transparent;
+  }
+}
+
+.dns-flash {
+  animation: dns-flash 1.2s ease-out;
+}
+
 /* Markdown Editor Styling */
 .w-md-editor {
   @apply rounded-lg border;

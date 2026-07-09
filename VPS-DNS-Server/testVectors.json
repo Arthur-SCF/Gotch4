@@ -1,0 +1,74 @@
+{
+  "secret": "gotch4-vectors-secret-000000000000",
+  "baseDomain": "collab.example.com",
+  "hex": [
+    {
+      "ip": "127.0.0.1",
+      "hex": "7f000001"
+    },
+    {
+      "ip": "0.0.0.0",
+      "hex": "00000000"
+    },
+    {
+      "ip": "255.255.255.255",
+      "hex": "ffffffff"
+    },
+    {
+      "ip": "192.168.0.1",
+      "hex": "c0a80001"
+    },
+    {
+      "ip": "169.254.169.254",
+      "hex": "a9fea9fe"
+    },
+    {
+      "ip": "100.100.100.200",
+      "hex": "646464c8"
+    }
+  ],
+  "capture": [
+    {
+      "fqdn": "abc234.collab.example.com",
+      "token": "abc234"
+    },
+    {
+      "fqdn": "x.y.mytoken.collab.example.com",
+      "token": "mytoken"
+    }
+  ],
+  "rebind": [
+    {
+      "ipA": "35.185.206.165",
+      "ipB": "127.0.0.1",
+      "strategy": "fs",
+      "token": "rebindtoka",
+      "label": "rb-23b9cea5-7f000001-fs-233d1bd7-rebindtoka",
+      "mac": "233d1bd7"
+    },
+    {
+      "ipA": "203.0.113.9",
+      "ipB": "169.254.169.254",
+      "strategy": "ma",
+      "token": "rebindtokb",
+      "label": "rb-cb007109-a9fea9fe-ma-83c85efe-rebindtokb",
+      "mac": "83c85efe"
+    },
+    {
+      "ipA": "203.0.113.9",
+      "ipB": "192.168.0.1",
+      "strategy": "rd",
+      "token": "rebindtokc",
+      "label": "rb-cb007109-c0a80001-rd-69972f61-rebindtokc",
+      "mac": "69972f61"
+    }
+  ],
+  "embed": [
+    {
+      "ip": "169.254.169.254",
+      "token": "embedtoka",
+      "label": "ip-a9fea9fe-ef2a8920-embedtoka",
+      "mac": "ef2a8920"
+    }
+  ]
+}

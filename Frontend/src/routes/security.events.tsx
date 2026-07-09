@@ -93,10 +93,6 @@ interface Event {
   cookies: string;
   queryParams: string;
 
-  // DNS fields
-  dnsQuery?: string | null;
-  dnsType?: string | null; // A, AAAA, TXT, MX, etc.
-
   // Common fields
   ipAddress: string | null;
   userAgent: string | null;
@@ -175,7 +171,7 @@ function EventsPage() {
   const { data: eventsResponse, isLoading } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const res = await apiFetch(`${API_URL}/api/events`);
+      const res = await apiFetch(`${API_URL}/api/events?type=http`);
       if (!res.ok) throw new Error("Failed to fetch events");
       return res.json();
     },
@@ -206,6 +202,7 @@ function EventsPage() {
 
   // Live updates via SSE
   const handleNewEvent = useCallback((event: Event) => {
+    if (event.type === "dns") return;
     queryClient.invalidateQueries({ queryKey: ["events"] });
     toast.success(`New ${event.method} request captured`, {
       description: event.path,
@@ -926,7 +923,6 @@ function EventsPage() {
             <SelectContent>
               <SelectItem value="All">All Types</SelectItem>
               <SelectItem value="http">HTTP Only</SelectItem>
-              <SelectItem value="dns">DNS Only</SelectItem>
               <SelectItem value="ez">ezXSS Only</SelectItem>
             </SelectContent>
           </Select>
@@ -1261,11 +1257,6 @@ function EventsPage() {
                                     <IconCode className="size-3" />
                                     ezXSS
                                   </Badge>
-                                ) : event.type === "dns" ? (
-                                  <Badge variant="secondary" className="gap-1">
-                                    DNS
-                                    {event.dnsType && <span className="text-xs opacity-70">({event.dnsType})</span>}
-                                  </Badge>
                                 ) : (
                                   <Badge className={getMethodColor(event.method)}>
                                     {event.method}
@@ -1283,13 +1274,13 @@ function EventsPage() {
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs sm:text-sm max-w-[150px] sm:max-w-md truncate"
-                              title={event._source === "ez" ? (event.fullUrl || event.origin || "") : event.type === "dns" ? event.dnsQuery ?? "" : event.fullUrl}>
+                              title={event._source === "ez" ? (event.fullUrl || event.origin || "") : event.fullUrl}>
                               {event._source === "ez" ? (
                                 <span className="flex flex-col gap-0.5">
                                   <span>{event.fullUrl || "(no uri)"}</span>
                                   {event.origin && <span className="text-muted-foreground text-xs">{event.origin}</span>}
                                 </span>
-                              ) : event.type === "dns" ? event.dnsQuery : event.fullUrl}
+                              ) : event.fullUrl}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell text-sm">
                               {event._source === "ez" ? (
@@ -1397,11 +1388,6 @@ function EventsPage() {
                                 <IconCode className="size-3" />
                                 ezXSS
                               </Badge>
-                            ) : event.type === "dns" ? (
-                              <Badge variant="secondary" className="gap-1">
-                                DNS
-                                {event.dnsType && <span className="text-xs opacity-70">({event.dnsType})</span>}
-                              </Badge>
                             ) : (
                               <Badge className={getMethodColor(event.method)}>
                                 {event.method}
@@ -1426,10 +1412,10 @@ function EventsPage() {
                             )}
                           </div>
                           <p className="font-mono text-sm truncate"
-                            title={event._source === "ez" ? (event.fullUrl || event.origin || "") : event.type === "dns" ? event.dnsQuery ?? "" : event.fullUrl}>
+                            title={event._source === "ez" ? (event.fullUrl || event.origin || "") : event.fullUrl}>
                             {event._source === "ez"
                               ? (event.fullUrl || event.origin || "(no uri)")
-                              : event.type === "dns" ? event.dnsQuery : event.fullUrl}
+                              : event.fullUrl}
                           </p>
                           {event._source === "ez" && event.origin && (
                             <p className="text-xs text-muted-foreground truncate">{event.origin}</p>

@@ -6,6 +6,7 @@ import { getProgramsWithScope } from '../lib/programScopeCache.ts';
 import { matchScope } from '../lib/scopeMatcher.ts';
 import { sendNotification } from '../lib/notify.ts';
 import { broadcast } from '../lib/broadcast.ts';
+import { extractCorrelationToken, isRebindStrategy } from '../lib/dnsEngine.ts';
 
 const app = new Hono<{ Variables: { prisma: PrismaClient } }>();
 app.use('/*', withPrisma);
@@ -24,9 +25,13 @@ export function getLastCallbackAt() { return lastCallbackAt; }
 interface DnsCallbackPayload {
   query: string;        // DNS query name (e.g., "test.example.com")
   type: string;         // Query type (A, AAAA, TXT, etc.)
-  ipAddress: string;    // Client IP that made the query
+  ipAddress: string;    // Client IP that made the query (the recursive resolver)
   timestamp: string;    // ISO 8601 timestamp
   protocol?: string;    // "udp" or "tcp"
+  // Enriched by the rebinding-capable VPS DNS server (optional — an older VPS omits them):
+  token?: string;       // correlation token the VPS parsed from the query label
+  answer?: string;      // record data the VPS returned (IP list / CNAME / NODATA)
+  strategy?: string;    // rebinding strategy applied: fs | ma | rr | rd
 }
 
 // POST /api/dns/callback
@@ -88,29 +93,58 @@ app.post('/callback', async (c) => {
       }, 400);
     }
 
-    // Validate query domain matches configured base domain
-    if (settings.dnsBaseDomain && !payload.query.endsWith(settings.dnsBaseDomain)) {
-      console.log(`[DNS Callback] Rejected query for ${payload.query} (expected *.${settings.dnsBaseDomain})`);
+    // Validate query domain matches configured base domain — STRICT suffix check so a
+    // sibling like "notcollab.example.com" cannot match "collab.example.com".
+    const baseDomain = settings.dnsBaseDomain?.toLowerCase() ?? null;
+    const queryLower = payload.query.toLowerCase().replace(/\.$/, '');
+    if (
+      baseDomain &&
+      queryLower !== baseDomain &&
+      !queryLower.endsWith(`.${baseDomain}`)
+    ) {
+      console.log(`[DNS Callback] Rejected query for ${payload.query} (expected *.${baseDomain})`);
       return c.json({
         error: 'Invalid domain',
-        message: `Query must be for *.${settings.dnsBaseDomain}`,
+        message: `Query must be for *.${baseDomain}`,
       }, 400);
     }
 
-    // Scope matching: auto-assign to a program if query domain matches
+    // Correlation token: prefer the value the VPS parsed; otherwise derive it from the query.
+    const correlationToken = payload.token
+      ? payload.token.toLowerCase()
+      : baseDomain
+        ? extractCorrelationToken(payload.query, baseDomain)
+        : null;
+    const rebindStrategy = isRebindStrategy(payload.strategy) ? payload.strategy : null;
+
+    // Program assignment: an explicit token→program link wins; else fall back to scope matching.
     let programId: number | null = null;
     let programName: string | null = null;
-    try {
-      const programs = await getProgramsWithScope();
-      for (const p of programs) {
-        if (matchScope(p.scope, payload.query)) {
-          programId = p.id;
-          programName = p.name;
-          break;
-        }
+
+    if (correlationToken) {
+      const link = await c.var.prisma.interactionToken.findUnique({
+        where: { token: correlationToken },
+        include: { program: { select: { id: true, name: true } } },
+      });
+      if (link?.program) {
+        programId = link.program.id;
+        programName = link.program.name;
       }
-    } catch (e) {
-      console.error('[DNS Callback] Scope matching error:', e);
+    }
+
+    if (programId === null) {
+      try {
+        const programs = await getProgramsWithScope();
+        for (const p of programs) {
+          if (matchScope(p.scope, payload.query)) {
+            programId = p.id;
+            programName = p.name;
+            break;
+          }
+        }
+      } catch (e) {
+        console.error('[DNS Callback] Scope matching error:', e);
+      }
     }
 
     // Log query to database
@@ -119,6 +153,9 @@ app.post('/callback', async (c) => {
         type: 'dns',
         dnsQuery: payload.query,
         dnsType: payload.type.toUpperCase(),
+        dnsAnswer: payload.answer ?? null,
+        dnsRebindStrategy: rebindStrategy,
+        correlationToken,
         ipAddress: payload.ipAddress,
         headers: JSON.stringify({
           protocol: payload.protocol || 'udp',

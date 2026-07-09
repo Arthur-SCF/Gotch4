@@ -11,13 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { IconCopy, IconTrash, IconCheck, IconExternalLink, IconNote, IconEdit, IconX } from "@tabler/icons-react";
+import { IconCopy, IconTrash, IconCheck, IconExternalLink, IconNote, IconEdit, IconX, IconWorld, IconWorldWww, IconCode, IconRoute, IconHash } from "@tabler/icons-react";
 import { getMethodColor } from "@/lib/utils/colors";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProgramLinkSelector } from "@/components/ProgramLinkSelector";
 import { useCopyButton } from "@/hooks/useCopyButton";
+import { useQuery } from "@tanstack/react-query";
+import { API_URL } from "@/lib/config";
+import { apiFetch } from "@/lib/apiFetch";
+import { cn } from "@/lib/utils";
 
 interface EventPreviewDrawerProps {
   event: any | null;
@@ -27,6 +31,122 @@ interface EventPreviewDrawerProps {
   onLinkProgram: (programId: number | null) => void;
   onUpdateNotes: (notes: string) => void;
   programs: any[];
+}
+
+type IconComponent = React.ComponentType<{ className?: string }>;
+
+interface CorrelatedEvent {
+  readonly id: number;
+  readonly type: "http" | "dns" | "ez";
+  readonly createdAt: string;
+  readonly method?: string | null;
+  readonly path?: string | null;
+  readonly fullUrl?: string | null;
+  readonly dnsQuery?: string | null;
+  readonly dnsType?: string | null;
+}
+
+const CORRELATION_META: Record<
+  CorrelatedEvent["type"],
+  { readonly Icon: IconComponent; readonly ring: string; readonly text: string }
+> = {
+  dns: { Icon: IconWorld, ring: "border-sky-500/30 bg-sky-500/10", text: "text-sky-600 dark:text-sky-400" },
+  http: { Icon: IconWorldWww, ring: "border-emerald-500/30 bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400" },
+  ez: { Icon: IconCode, ring: "border-violet-500/30 bg-violet-500/10", text: "text-violet-600 dark:text-violet-400" },
+};
+
+function correlatedLabel(item: CorrelatedEvent): string {
+  if (item.type === "dns") return `DNS ${item.dnsType ?? ""} ${item.dnsQuery ?? ""}`.trim();
+  if (item.type === "ez") return "XSS callback";
+  return `HTTP ${item.method ?? ""} ${item.path ?? item.fullUrl ?? ""}`.trim();
+}
+
+function MetaField({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  return (
+    <div className="min-w-0 space-y-0.5">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("text-xs break-all", mono && "font-mono")}>{value}</p>
+    </div>
+  );
+}
+
+function CorrelationSection({ token, currentId }: { token: string; currentId: number }) {
+  const { copy, isCopied } = useCopyButton();
+  const { data, isLoading } = useQuery({
+    queryKey: ["event-correlation", token],
+    queryFn: async () => {
+      const res = await apiFetch(`${API_URL}/api/events/correlation/${token}`);
+      if (!res.ok) throw new Error("Failed to fetch correlation");
+      return res.json() as Promise<{ data: CorrelatedEvent[] }>;
+    },
+    enabled: token.length > 0,
+  });
+
+  const linked = data?.data ?? [];
+
+  return (
+    <Card className="p-4 border-sky-500/30 bg-sky-500/5">
+      <div className="mb-1 flex items-center gap-1.5">
+        <IconRoute className="size-4 text-sky-600 dark:text-sky-400" />
+        <span className="text-sm font-medium">DNS / SSRF correlation</span>
+      </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        This HTTP hit came from a DNS payload. Every lookup and hit sharing the token, in order.
+      </p>
+      <button
+        type="button"
+        aria-label="Copy correlation token"
+        onClick={() => copy(token, "corr-token", "correlation token")}
+        className="mb-3 inline-flex max-w-full items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 font-mono text-xs transition-colors hover:bg-muted"
+      >
+        <IconHash className="size-3 shrink-0 text-muted-foreground" />
+        <span className="break-all">{token}</span>
+        {isCopied("corr-token") ? (
+          <IconCheck className="size-3 shrink-0 text-emerald-500" />
+        ) : (
+          <IconCopy className="size-3 shrink-0 text-muted-foreground" />
+        )}
+      </button>
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading correlated interactions…</p>
+      ) : linked.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No other interactions share this token yet.</p>
+      ) : (
+        <ol className="relative">
+          {linked.map((item, idx) => {
+            const meta = CORRELATION_META[item.type];
+            const StepIcon = meta.Icon;
+            const isLast = idx === linked.length - 1;
+            const isCurrent = item.type === "http" && item.id === currentId;
+            const time = new Date(item.createdAt).toLocaleTimeString();
+            return (
+              <li key={`${item.type}-${item.id}`} className="relative flex gap-3 pb-4 last:pb-0">
+                {!isLast && <span aria-hidden className="absolute left-[13px] top-7 bottom-0 w-px bg-border" />}
+                <span
+                  className={cn(
+                    "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border",
+                    meta.ring,
+                  )}
+                >
+                  <StepIcon className={cn("size-3.5", meta.text)} />
+                </span>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="break-all font-mono text-xs">{correlatedLabel(item)}</span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{time}</span>
+                  </div>
+                  <span className={cn("text-[10px] font-medium uppercase tracking-wide", meta.text)}>
+                    {item.type}
+                    {isCurrent ? " · this request" : ""}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </Card>
+  );
 }
 
 export function EventPreviewDrawer({
@@ -90,13 +210,11 @@ export function EventPreviewDrawer({
   };
 
   const formatQueryParams = () => {
+    if (!event.query) return "";
     try {
-      const params = typeof event.queryParams === "string"
-        ? JSON.parse(event.queryParams)
-        : event.queryParams;
-      return JSON.stringify(params, null, 2);
+      return JSON.stringify(Object.fromEntries(new URLSearchParams(event.query)), null, 2);
     } catch {
-      return event.queryParams || "{}";
+      return String(event.query);
     }
   };
 
@@ -214,6 +332,32 @@ export function EventPreviewDrawer({
             </code>
           </Card>
 
+          <Card className="p-4">
+            <div className="text-sm font-medium mb-3">Request details</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              {event.host && <MetaField label="Host" value={event.host} mono />}
+              {event.ipAddress && event.ipAddress !== "unknown" && (
+                <MetaField label="Source IP" value={event.ipAddress} mono />
+              )}
+              {event.protocol && <MetaField label="Protocol" value={event.protocol} mono />}
+              {event.contentType && <MetaField label="Content-Type" value={event.contentType} mono />}
+              {event.contentLength != null && (
+                <MetaField label="Content-Length" value={String(event.contentLength)} mono />
+              )}
+              {event.referer && <MetaField label="Referer" value={event.referer} mono />}
+              <MetaField label="Captured" value={new Date(event.createdAt).toLocaleString()} />
+            </div>
+            {event.userAgent && (
+              <div className="mt-3 border-t pt-3">
+                <MetaField label="User-Agent" value={event.userAgent} mono />
+              </div>
+            )}
+          </Card>
+
+          {event.correlationToken && (
+            <CorrelationSection token={event.correlationToken} currentId={event.id} />
+          )}
+
           {/* Program Link */}
           <ProgramLinkSelector
             programs={programs}
@@ -296,17 +440,23 @@ export function EventPreviewDrawer({
 
             <TabsContent value="query" className="flex-1 overflow-auto mt-4">
               <div className="text-sm font-medium mb-2">Query Parameters</div>
-              <SyntaxHighlighter
-                language="json"
-                style={vscDarkPlus}
-                customStyle={{
-                  margin: 0,
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                }}
-              >
-                {formatQueryParams()}
-              </SyntaxHighlighter>
+              {formatQueryParams() ? (
+                <SyntaxHighlighter
+                  language="json"
+                  style={vscDarkPlus}
+                  customStyle={{
+                    margin: 0,
+                    borderRadius: "0.375rem",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  {formatQueryParams()}
+                </SyntaxHighlighter>
+              ) : (
+                <div className="text-sm text-muted-foreground border rounded p-4 text-center">
+                  No query parameters
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="cookies" className="flex-1 overflow-auto mt-4">

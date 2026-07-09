@@ -5,6 +5,7 @@ import { getProgramsWithScope } from './programScopeCache.ts';
 import { matchScope } from './scopeMatcher.ts';
 import { sendNotification } from './notify.ts';
 import { broadcast } from './broadcast.ts';
+import { planAnswer } from './dnsAnswer.ts';
 
 const { Packet } = dns2;
 
@@ -38,6 +39,10 @@ class DnsController {
       console.log('[DNS] Base domain not configured');
       return false;
     }
+    const baseDomain = settings.dnsBaseDomain;
+    const secret = settings.dnsAuthToken ?? '';
+    const responseIp = settings.dnsResponseIp || '127.0.0.1';
+    const ttlDefault = settings.dnsTtl;
 
     // Check if already running
     if (this.isRunning) {
@@ -52,24 +57,52 @@ class DnsController {
         handle: async (request: any, send: any) => {
           const query = request.questions[0];
           const response = Packet.createResponseFromRequest(request);
+          const qtype = this.getQueryTypeName(query.type);
+          const ipAddress = request.address?.address || request.address || 'unknown';
 
-          // Only process queries for our domain
-          if (!query.name.endsWith(settings.dnsBaseDomain!)) {
-            response.header.rcode = 3; // NXDOMAIN - domain doesn't exist
+          const result = planAnswer({
+            fqdn: query.name,
+            qtype,
+            baseDomain,
+            defaultIp: responseIp,
+            secret,
+            txtValue: 'Gotch4 DNS capture',
+            resolverIp: ipAddress,
+          });
+
+          if (result.plan.kind === 'nxdomain') {
+            response.header.rcode = 3;
             send(response);
             return;
           }
 
-          // Log query to database
-          try {
-            // Extract IP address - dns2 library structure varies between UDP/TCP
-            const ipAddress = request.address?.address || request.address || 'unknown';
-            const dnsType = this.getQueryTypeName(query.type);
+          const ttl = result.strategy ? 0 : ttlDefault;
+          if (result.plan.kind === 'records') {
+            for (const rec of result.plan.records) {
+              if (rec.type === 'A') {
+                response.answers.push({ name: query.name, type: Packet.TYPE.A, class: Packet.CLASS.IN, ttl, address: rec.ip });
+              } else if (rec.type === 'TXT') {
+                response.answers.push({ name: query.name, type: Packet.TYPE.TXT, class: Packet.CLASS.IN, ttl: ttlDefault, data: [rec.text] });
+              }
+            }
+          }
+          send(response);
 
-            // Scope matching: auto-assign to a program if the queried domain matches
+          try {
+            const correlationToken = result.token;
             let programId: number | null = null;
             let programName: string | null = null;
-            try {
+            if (correlationToken) {
+              const link = await prisma.interactionToken.findUnique({
+                where: { token: correlationToken },
+                include: { program: { select: { id: true, name: true } } },
+              });
+              if (link?.program) {
+                programId = link.program.id;
+                programName = link.program.name;
+              }
+            }
+            if (programId === null) {
               const programs = await getProgramsWithScope();
               for (const p of programs) {
                 if (matchScope(p.scope, query.name)) {
@@ -78,72 +111,28 @@ class DnsController {
                   break;
                 }
               }
-            } catch (e) {
-              console.error('[DNS] Scope matching error:', e);
             }
 
             const dnsEvent = await prisma.event.create({
               data: {
                 type: 'dns',
                 dnsQuery: query.name,
-                dnsType,
-                ipAddress: ipAddress,
-                headers: JSON.stringify({
-                  protocol: request.address ? 'udp' : 'tcp',
-                  rawAddress: request.address
-                }),
+                dnsType: qtype,
+                dnsAnswer: result.summary,
+                dnsRebindStrategy: result.strategy,
+                correlationToken,
+                ipAddress,
+                headers: JSON.stringify({ protocol: request.address ? 'udp' : 'tcp', source: 'local-dns' }),
                 programId,
               },
             });
 
-            // Broadcast immediately so Events badge updates in real-time
             broadcast({ type: "new_event", event: { id: dnsEvent.id, type: "dns" } });
-
-            // Fire-and-forget notification
-            void sendNotification({
-              type: 'dns',
-              programId,
-              programName,
-              dnsQuery: query.name,
-              dnsType,
-              ipAddress,
-            });
-
-            console.log(`[DNS] Query: ${query.name} (${dnsType}) from ${ipAddress}`);
+            void sendNotification({ type: 'dns', programId, programName, dnsQuery: query.name, dnsType: qtype, ipAddress });
+            console.log(`[DNS] ${query.name} (${qtype}) from ${ipAddress} -> ${result.summary}${result.strategy ? ` [${result.strategy}]` : ''}`);
           } catch (error) {
             console.error('[DNS] Failed to log query to database:', error);
           }
-
-          // Respond based on query type
-          if (query.type === Packet.TYPE.A) {
-            response.answers.push({
-              name: query.name,
-              type: Packet.TYPE.A,
-              class: Packet.CLASS.IN,
-              ttl: settings.dnsTtl,
-              address: settings.dnsResponseIp || '127.0.0.1',
-            });
-          } else if (query.type === Packet.TYPE.AAAA) {
-            // IPv6 support (optional)
-            response.answers.push({
-              name: query.name,
-              type: Packet.TYPE.AAAA,
-              class: Packet.CLASS.IN,
-              ttl: settings.dnsTtl,
-              address: '::1', // or configured IPv6
-            });
-          } else if (query.type === Packet.TYPE.TXT) {
-            // TXT record support
-            response.answers.push({
-              name: query.name,
-              type: Packet.TYPE.TXT,
-              class: Packet.CLASS.IN,
-              ttl: settings.dnsTtl,
-              data: ['DNS capture server'], // Can be configured
-            });
-          }
-
-          send(response);
         },
       });
 

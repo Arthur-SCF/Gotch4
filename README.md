@@ -5,7 +5,7 @@ Gotch4 is a full-stack bug bounty capture platform for collecting and analyzing 
 It provides:
 
 - HTTP webhook capture (arbitrary request logging)
-- DNS capture (local server mode or remote VPS callback mode)
+- DNS capture + **DNS rebinding for blind-SSRF escalation** (local server mode or remote VPS callback mode)
 - OOB Grab (keyed capture endpoints for exploit chains)
 - ezXSS (lightweight built-in minified/subset blind XSS callback collection, with optional screenshot; full ezXSS by @ssl: https://github.com/ssl/ezXSS)
 - Real-time live feed over WebSocket
@@ -144,8 +144,15 @@ Backend API runs on `http://localhost:3000`.
 ### HTTP and DNS Event Capture
 
 - Captures full request metadata (headers, body, method, IP, user agent, referer)
-- Supports DNS query logging into unified event pipeline
-- Auto program assignment via scope matching
+- DNS events live in their own **DNS / Blind-SSRF** tab (not the HTTP Events view)
+- Auto program assignment via scope matching (and per-payload interaction-token linking)
+
+### DNS / Blind-SSRF toolkit
+
+- **DNS rebinding** to escalate a blind SSRF to an internal target (`127.0.0.1`, cloud IMDS `169.254.169.254`, RFC1918, …), with strategies segmented by attack type: `rd`/`fs` (server-side), `ma`/`rr` (browser)
+- **HMAC-signed** rebind hostnames minted server-side — the server cannot be abused as an open rebinder
+- **Per-payload correlation tokens** parsed from both the DNS query name and the HTTP Host header, so a DNS lookup and its follow-up HTTP hit surface as one interaction
+- Live DNS feed, DNS-shaped event detail with a DNS→HTTP correlation timeline, and a payload generator (see `VPS-DNS-Server/README.md` for the hostname grammar)
 
 ### OOB Grab
 

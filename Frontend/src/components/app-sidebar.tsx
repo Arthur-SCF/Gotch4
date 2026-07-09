@@ -55,9 +55,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { unread } = useUnread();
 
   const securityTools = [
-    { name: "Events",    url: "/security/events", icon: IconRadar, badge: unread.events || undefined },
-    { name: "DNS Tools", url: "/security/dns",    icon: IconWorld },
-    { name: "ezXSS",     url: "/security/ezxss",  icon: IconCode,  badge: unread.ez || undefined },
+    { name: "Events", url: "/security/events", icon: IconRadar, badge: unread.events || undefined },
+    { name: "DNS",    url: "/security/dns",    icon: IconWorld, badge: unread.dns || undefined },
+    { name: "ezXSS",  url: "/security/ezxss",  icon: IconCode,  badge: unread.ez || undefined },
   ];
 
   const securityToolsMore = [

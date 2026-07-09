@@ -7,6 +7,7 @@ import { validateDnsSettings, sanitizeString, validateUrl, validateDomain, valid
 import withPrisma, { prisma } from '../lib/prisma.ts';
 import { setWebhookPath } from '../lib/webhookState.ts';
 import { setDnsState } from '../lib/dnsState.ts';
+import { resolveDefaultAttackerIp } from '../lib/dnsDefaults.ts';
 
 const app = new Hono<{ Variables: { prisma: PrismaClient } }>();
 
@@ -276,6 +277,7 @@ app.get('/api/settings/dns/status', async (c) => {
     mode: settings?.dnsMode || 'local',
     domain: settings?.dnsBaseDomain,
     responseIp: settings?.dnsResponseIp,
+    attackerIpDefault: resolveDefaultAttackerIp(settings?.dnsResponseIp, settings?.dnsVpsUrl),
     nsConfigured,
     lastCallbackAt: getLastCallbackAt()?.toISOString() ?? null,
   });

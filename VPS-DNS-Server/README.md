@@ -18,11 +18,56 @@ Standalone DNS server for bug bounty DNS capture when your main app is behind Cl
 
 - ✅ Runs DNS server on port 53 (UDP + TCP)
 - ✅ Captures all DNS queries for your domain
-- ✅ Forwards queries to main app via HTTPS webhook
+- ✅ Forwards queries to main app via HTTPS webhook (http allowed for `localhost` testing only)
 - ✅ Secure authentication with token
-- ✅ Auto-responds to A, AAAA, TXT queries
+- ✅ **DNS rebinding** for blind-SSRF escalation (`rd` / `ma` / `fs` / `rr` strategies)
+- ✅ **HMAC-signed** rebind directives — cannot be abused as an open rebinder
+- ✅ **Per-payload correlation tokens** linking a DNS lookup to its follow-up HTTP hit
+- ✅ Capture + `nip.io`-style single-IP embed
 - ✅ Logging and error handling
 - ✅ Graceful shutdown
+
+## Hostname grammar (blind-SSRF)
+
+The DNS engine (`dnsEngine.ts` + `dnsAnswer.ts`, kept byte-identical to the main
+app's copy) decides the answer from the queried name. The encoded label is the one
+immediately left of the base domain:
+
+| Kind | Hostname | Answer |
+|---|---|---|
+| **Capture** | `<token>.<base>` | The VPS IP (`DNS_RESPONSE_IP`). Logged + correlated. |
+| **Rebind** | `rb-<hexIpA>-<hexIpB>-<strategy>-<hmac>-<token>.<base>` | Flips between IP A (benign) and IP B (internal target) per `strategy`. |
+| **Embed** | `ip-<hexIp>-<hmac>-<token>.<base>` | Always the single embedded IP (`nip.io`-style). |
+
+- `hexIp` = big-endian IPv4 dword, 8 lowercase hex (e.g. `127.0.0.1` → `7f000001`).
+- `token` = lowercase base32 (case-safe against DNS 0x20 randomization).
+- `hmac` = truncated HMAC-SHA256 over the directive, keyed on `AUTH_TOKEN`. **Only the
+  main app can mint valid rebind/embed hostnames** (via its DNS tab → `/api/interactions/rebind`);
+  a bad/forged signature falls back to a benign capture answer.
+
+### Rebinding strategies
+
+| Code | Behaviour | Use for |
+|---|---|---|
+| `rd` | Random IP A/B per query (TTL 0) | **Server-side SSRF (default)** — retry until the check/use race lands |
+| `fs` | IP A on the first lookup, IP B thereafter | Server-side filters that re-resolve on connect |
+| `ma` | Both IPs in one answer | **Browser** rebinding (connection-pool failover) |
+| `rr` | Alternates A/B each query | Browser rebinding |
+
+Rebind answers always use **TTL 0** to defeat DNS pinning. `AAAA` on a rebind host
+returns **NODATA** (not `::1`) so dual-stack victims don't hit their own loopback.
+Names outside the zone return **NXDOMAIN**; in-zone names with no record for the
+queried type return **NODATA** (never NXDOMAIN, to avoid negative caching).
+
+### Enriched webhook payload
+
+Each in-zone query is forwarded to the main app as:
+
+```json
+{ "query": "...", "type": "A", "ipAddress": "<resolver ip>", "timestamp": "...",
+  "protocol": "udp", "token": "<correlation token>", "answer": "<ips returned>",
+  "strategy": "rd|ma|fs|rr|null", "grammarVersion": 1 }
+```
 
 ## Requirements
 

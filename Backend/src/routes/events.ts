@@ -23,13 +23,17 @@ app.get("/", async (c) => {
     const limit = Math.min(200, Math.max(1, parseInt(c.req.query("limit") || "50") || 50));
     const skip = (page - 1) * limit;
 
-    // Get total count for pagination metadata
-    const total = await prisma.event.count();
+    const typeParam = c.req.query("type");
+    const where =
+      typeParam === "http" || typeParam === "dns" ? { type: typeParam } : {};
+
+    const total = await prisma.event.count({ where });
 
     const events = await prisma.event.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       take: limit,
-      skip: skip,
+      skip,
     });
 
     return c.json({
@@ -43,6 +47,21 @@ app.get("/", async (c) => {
     });
   } catch (error) {
     return c.json({ error: "Failed to fetch events" }, 500);
+  }
+});
+
+// Get all events sharing a correlation token (DNS lookup + follow-up HTTP hit).
+app.get("/correlation/:token", async (c) => {
+  try {
+    const prisma = c.get("prisma");
+    const token = c.req.param("token").toLowerCase();
+    const events = await prisma.event.findMany({
+      where: { correlationToken: token },
+      orderBy: { createdAt: "asc" },
+    });
+    return c.json({ data: events, token });
+  } catch (error) {
+    return c.json({ error: "Failed to fetch correlated events" }, 500);
   }
 });
 
