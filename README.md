@@ -152,7 +152,8 @@ Backend API runs on `http://localhost:3000`.
 - **DNS rebinding** to escalate a blind SSRF to an internal target (`127.0.0.1`, cloud IMDS `169.254.169.254`, RFC1918, …), with strategies segmented by attack type: `rd`/`fs` (server-side), `ma`/`rr` (browser)
 - **HMAC-signed** rebind hostnames minted server-side — the server cannot be abused as an open rebinder
 - **Per-payload correlation tokens** parsed from both the DNS query name and the HTTP Host header, so a DNS lookup and its follow-up HTTP hit surface as one interaction
-- Live DNS feed, DNS-shaped event detail with a DNS→HTTP correlation timeline, and a payload generator (see `VPS-DNS-Server/README.md` for the hostname grammar)
+- Live DNS feed showing the querying **resolver IP** per lookup, DNS-shaped event detail with a DNS→HTTP correlation timeline, and a payload generator whose output persists across navigation (see `VPS-DNS-Server/README.md` for the hostname grammar)
+- **Manage the feed** — delete a single lookup, an entire interaction, or clear all captured lookups
 
 ### OOB Grab
 
@@ -181,6 +182,7 @@ Backend API runs on `http://localhost:3000`.
 - Telegram, Discord, Slack, SMTP Email
 - Field-level visibility and redaction
 - Per-event-type message templates
+- Rich DNS alerts — query, type, answer, rebind strategy, protocol, resolver IP and correlation token; HTTP alerts carry the correlation token too, so a lookup and its follow-up HTTP hit line up
 
 ## Environment Configuration
 

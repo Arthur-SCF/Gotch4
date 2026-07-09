@@ -17,8 +17,9 @@ Standalone DNS server for bug bounty DNS capture when your main app is behind Cl
 ## Features
 
 - ✅ Runs DNS server on port 53 (UDP + TCP)
-- ✅ Captures all DNS queries for your domain
+- ✅ Captures all DNS queries for your domain, including the querying resolver's IP (UDP + TCP)
 - ✅ Forwards queries to main app via HTTPS webhook (http allowed for `localhost` testing only)
+- ✅ Optional **HTTP forwarder** — proxies `*.DNS_DOMAIN` hits to the app so HTTP callbacks correlate with their DNS lookup; Cloudflare-safe (sends the app's own `Host`, passes the collab host in `X-Forwarded-Host`)
 - ✅ Secure authentication with token
 - ✅ **DNS rebinding** for blind-SSRF escalation (`rd` / `ma` / `fs` / `rr` strategies)
 - ✅ **HMAC-signed** rebind directives — cannot be abused as an open rebinder
