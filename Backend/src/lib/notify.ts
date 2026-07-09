@@ -18,6 +18,7 @@ export interface NotifyPayload {
 
   // Shared
   ipAddress?: string | null;
+  correlationToken?: string | null;
 
   // ── HTTP ─────────────────────────────────────────
   method?: string | null;
@@ -37,6 +38,8 @@ export interface NotifyPayload {
   // ── DNS ──────────────────────────────────────────
   dnsQuery?: string | null;
   dnsType?: string | null;
+  dnsAnswer?: string | null;
+  dnsRebindStrategy?: string | null;
 
   // ── Grab ─────────────────────────────────────────
   grabKey?: string | null;
@@ -159,6 +162,8 @@ function buildMessage(payload: NotifyPayload, cfg: Required<NotifyFieldConfig>):
     const cl = fv(cfg, "contentLength", payload.contentLength != null ? String(payload.contentLength) : null);
     if (cl) lines.push(`📏 Content-Length \`${cl === "[REDACTED]" ? cl : cl + " bytes"}\``);
 
+    lines.push(row("🔗 Token       ", payload.correlationToken));
+
     const cookies = fv(cfg, "cookies", payload.cookies);
     if (cookies) lines.push(`🍪 Cookies      \`${cookies === "[REDACTED]" ? cookies : trunc(cookies, MAX_COOKIES)}\``);
 
@@ -182,7 +187,11 @@ function buildMessage(payload: NotifyPayload, cfg: Required<NotifyFieldConfig>):
     lines.push("");
 
     lines.push(row("📋 Type        ", payload.dnsType));
-    lines.push(row("📍 IP          ", fv(cfg, "ip", payload.ipAddress)));
+    lines.push(row("↩️ Answer      ", payload.dnsAnswer));
+    lines.push(row("🔀 Rebind      ", payload.dnsRebindStrategy));
+    lines.push(row("📡 Protocol    ", payload.protocol));
+    lines.push(row("📍 Resolver    ", fv(cfg, "ip", payload.ipAddress)));
+    lines.push(row("🔗 Token       ", payload.correlationToken));
   }
 
   // ── EZ (blind XSS) ───────────────────────────────────────────────────────
@@ -346,6 +355,9 @@ function renderTemplate(template: string, payload: NotifyPayload): string {
     // DNS
     DNS_QUERY:      payload.dnsQuery      ?? "",
     DNS_TYPE:       payload.dnsType       ?? "",
+    DNS_ANSWER:     payload.dnsAnswer     ?? "",
+    DNS_STRATEGY:   payload.dnsRebindStrategy ?? "",
+    TOKEN:          payload.correlationToken  ?? "",
     // Grab
     GRAB_KEY:       payload.grabKey       ?? "",
     GRAB_METHOD:    payload.grabMethod    ?? "",

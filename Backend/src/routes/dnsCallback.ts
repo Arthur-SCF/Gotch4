@@ -180,6 +180,10 @@ app.post('/callback', async (c) => {
       dnsQuery: payload.query,
       dnsType: payload.type.toUpperCase(),
       ipAddress: payload.ipAddress,
+      dnsAnswer: payload.answer ?? null,
+      dnsRebindStrategy: rebindStrategy,
+      correlationToken,
+      protocol: payload.protocol ?? null,
     });
 
     console.log(`[DNS Callback] Query: ${payload.query} (${payload.type}) from ${payload.ipAddress}`);

@@ -126,6 +126,7 @@ app.use("/*", async (c, next) => {
             userAgent,
             referer,
             contentType,
+            correlationToken,
           });
         } catch (e) {
           console.error("[SubdomainDetect] Error logging event:", e);

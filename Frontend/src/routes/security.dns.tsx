@@ -36,6 +36,17 @@ import {
 } from '@/components/ui/table';
 import { DnsEventDetail, type DnsEvent } from '@/components/DnsEventDetail';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   AlertCircle,
   Copy,
   Check,
@@ -62,6 +73,7 @@ import {
   Layers,
   List,
   Target,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -112,6 +124,24 @@ interface CaptureToken {
   readonly baseDomain: string;
   readonly programId: number | null;
   readonly strategy: string;
+}
+
+interface RebindFormState {
+  readonly targetSelect: string;
+  readonly customIp: string;
+  readonly strategy: RebindStrategy;
+  readonly attackerIp: string;
+  readonly programId: string;
+  readonly note: string;
+}
+
+function loadRebindForm(): Partial<RebindFormState> {
+  try {
+    const raw = localStorage.getItem('dns-rebind-form');
+    return raw ? (JSON.parse(raw) as Partial<RebindFormState>) : {};
+  } catch {
+    return {};
+  }
 }
 
 interface DnsEventsResponse {
@@ -173,6 +203,7 @@ interface Interaction {
   readonly lastAt: number;
   readonly recordTypes: readonly string[];
   readonly answers: readonly AnswerChip[];
+  readonly eventIds: readonly number[];
 }
 
 function hexDwordToIpv4(hex: string): string | null {
@@ -292,6 +323,7 @@ function buildInteractions(events: readonly DnsEvent[]): Interaction[] {
       lastAt: new Date(latest.createdAt).getTime(),
       recordTypes: [...typeSet],
       answers,
+      eventIds: sorted.map((e) => e.id),
     });
   }
   interactions.sort((a, b) => b.lastAt - a.lastAt);
@@ -536,25 +568,39 @@ function InteractionCard({
   now,
   flash,
   onOpen,
+  onDelete,
 }: {
   interaction: Interaction;
   now: number;
   flash: boolean;
   onOpen: () => void;
+  onDelete: (ids: readonly number[]) => void;
 }) {
   const hasFlip = interaction.answers.some((a) => a.cls === 'benign')
     && interaction.answers.some((a) => a.cls === 'internal');
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={`Open interaction ${interaction.host}`}
-      className={cn(
-        'w-full rounded-lg border p-3 text-left transition-colors duration-500',
-        'animate-in fade-in-0 hover:bg-muted/30 hover:border-border',
-        flash && 'dns-flash',
-      )}
-    >
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(interaction.eventIds);
+        }}
+        aria-label={`Delete interaction ${interaction.host}`}
+        className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Open interaction ${interaction.host}`}
+        className={cn(
+          'w-full rounded-lg border p-3 pr-10 text-left transition-colors duration-500',
+          'animate-in fade-in-0 hover:bg-muted/30 hover:border-border',
+          flash && 'dns-flash',
+        )}
+      >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <KindBadge kind={interaction.kind} strategy={interaction.strategy} />
@@ -607,16 +653,19 @@ function InteractionCard({
           ))}
         </div>
       </div>
-    </button>
+      </button>
+    </div>
   );
 }
 
 function RawDnsRow({
   ev,
   onOpen,
+  onDelete,
 }: {
   ev: DnsEvent;
   onOpen: () => void;
+  onDelete: (ids: readonly number[]) => void;
 }) {
   const decode = decodeRebindHost(ev.dnsQuery);
   const firstAnswer = ev.dnsAnswer?.split(',')[0]?.trim() ?? '';
@@ -668,6 +717,20 @@ function RawDnsRow({
         ) : (
           <span className="text-muted-foreground text-xs">—</span>
         )}
+      </TableCell>
+      <TableCell className="w-[44px] text-right">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Delete DNS lookup"
+          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete([ev.id]);
+          }}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
       </TableCell>
     </TableRow>
   );
@@ -723,6 +786,32 @@ function LiveDnsTab({
   });
   const events = data?.data ?? [];
 
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: readonly number[]) => {
+      if (ids.length === 0) return;
+      if (ids.length === 1) {
+        const res = await apiFetch(`${API_URL}/api/events/${ids[0]}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete DNS lookup');
+        return;
+      }
+      const res = await apiFetch(`${API_URL}/api/events/bulk-delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [...ids] }),
+      });
+      if (!res.ok) throw new Error('Failed to delete DNS lookups');
+    },
+    onSuccess: (_data, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['dns-events'] });
+      toast.success(ids.length === 1 ? 'DNS lookup deleted' : `Deleted ${ids.length} DNS lookups`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const onDelete = useCallback(
+    (ids: readonly number[]) => deleteMutation.mutate(ids),
+    [deleteMutation],
+  );
+
   const interactions = useMemo(() => buildInteractions(events), [events]);
 
   const prevLastAt = useRef<Map<string, number>>(new Map());
@@ -765,6 +854,7 @@ function LiveDnsTab({
   const rebindCount = interactions.filter((i) => i.kind === 'rebind').length;
   const captureCount = interactions.filter((i) => i.kind !== 'rebind').length;
   const lastHit = interactions.length > 0 ? interactions[0].lastAt : null;
+  const allEventIds = useMemo(() => events.map((e) => e.id), [events]);
 
   return (
     <div className="space-y-4">
@@ -809,35 +899,67 @@ function LiveDnsTab({
                 </CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-1 rounded-md border p-0.5">
-              <button
-                type="button"
-                onClick={() => setView('grouped')}
-                aria-pressed={view === 'grouped'}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
-                  view === 'grouped'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                Grouped
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('raw')}
-                aria-pressed={view === 'raw'}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
-                  view === 'raw'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <List className="w-3.5 h-3.5" />
-                Raw
-              </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 rounded-md border p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setView('grouped')}
+                  aria-pressed={view === 'grouped'}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                    view === 'grouped'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  Grouped
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView('raw')}
+                  aria-pressed={view === 'raw'}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                    view === 'raw'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  Raw
+                </button>
+              </div>
+              {allEventIds.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Clear all
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear all DNS lookups?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently deletes the {allEventIds.length} DNS lookup
+                        {allEventIds.length === 1 ? '' : 's'} shown here. HTTP events are not
+                        affected. This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDelete(allEventIds)}>
+                        Delete all
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -855,6 +977,7 @@ function LiveDnsTab({
                   now={now}
                   flash={flashing.has(it.key)}
                   onOpen={() => openInteraction(it.latest)}
+                  onDelete={onDelete}
                 />
               ))}
             </div>
@@ -870,11 +993,12 @@ function LiveDnsTab({
                     <TableHead className="w-[80px]">Rebind</TableHead>
                     <TableHead className="hidden md:table-cell">Resolver</TableHead>
                     <TableHead className="hidden lg:table-cell">Token</TableHead>
+                    <TableHead className="w-[44px] sr-only">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {events.map((ev) => (
-                    <RawDnsRow key={ev.id} ev={ev} onOpen={() => openInteraction(ev)} />
+                    <RawDnsRow key={ev.id} ev={ev} onOpen={() => openInteraction(ev)} onDelete={onDelete} />
                   ))}
                 </TableBody>
               </Table>
@@ -1001,13 +1125,29 @@ function RebindingTab({
   attackerIpDefault: string | null;
 }) {
   const { copy, isCopied } = useCopyButton();
-  const [targetSelect, setTargetSelect] = useState('');
-  const [customIp, setCustomIp] = useState('');
-  const [strategy, setStrategy] = useState<RebindStrategy>('rd');
-  const [attackerIp, setAttackerIp] = useState(attackerIpDefault ?? '');
-  const [programId, setProgramId] = useState('none');
-  const [note, setNote] = useState('');
-  const [result, setResult] = useState<RebindResponse | null>(null);
+  const [targetSelect, setTargetSelect] = useState(() => loadRebindForm().targetSelect ?? '');
+  const [customIp, setCustomIp] = useState(() => loadRebindForm().customIp ?? '');
+  const [strategy, setStrategy] = useState<RebindStrategy>(() => loadRebindForm().strategy ?? 'rd');
+  const [attackerIp, setAttackerIp] = useState(
+    () => loadRebindForm().attackerIp ?? attackerIpDefault ?? '',
+  );
+  const [programId, setProgramId] = useState(() => loadRebindForm().programId ?? 'none');
+  const [note, setNote] = useState(() => loadRebindForm().note ?? '');
+  const [result, setResult] = useState<RebindResponse | null>(() => {
+    try {
+      const raw = localStorage.getItem('dns-rebind-payload');
+      return raw ? (JSON.parse(raw) as RebindResponse) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      'dns-rebind-form',
+      JSON.stringify({ targetSelect, customIp, strategy, attackerIp, programId, note }),
+    );
+  }, [targetSelect, customIp, strategy, attackerIp, programId, note]);
 
   const { data: targetsData } = useQuery({
     queryKey: ['ssrf-targets'],
@@ -1055,6 +1195,7 @@ function RebindingTab({
     },
     onSuccess: (data) => {
       setResult(data);
+      localStorage.setItem('dns-rebind-payload', JSON.stringify(data));
       toast.success('Rebinding hostname generated');
     },
     onError: (e: Error) => toast.error(e.message),
