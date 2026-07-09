@@ -45,7 +45,7 @@ app.use(
 app.use("/*", async (c, next) => {
   const { enabled, baseDomain } = getDnsState();
   if (enabled && baseDomain) {
-    const host = (c.req.header("host") || "").toLowerCase().split(":")[0];
+    const host = (c.req.header("x-forwarded-host") || c.req.header("host") || "").toLowerCase().split(":")[0];
     // Match *.baseDomain (subdomains only, not the domain itself)
     if (host.endsWith("." + baseDomain) && host !== baseDomain) {
       void (async () => {

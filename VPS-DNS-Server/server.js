@@ -36,18 +36,21 @@ async function startHttpForwarder(config) {
   }
 
   const appUrl = config.appUrl.replace(/\/$/, '');
+  const appHost = new URL(appUrl).host;
   const httpPort = config.httpPort;
 
   const handleRequest = async (req) => {
     const url = new URL(req.url);
     const target = `${appUrl}${url.pathname}${url.search}`;
 
-    // Build forwarded headers — keep original Host so subdomain detection works
+    // The OOB Host (collab sub-domain) carries the correlation token. Move it to
+    // x-forwarded-host and send the app's real Host upstream, else Cloudflare 403s the mismatch.
     const headers = new Headers(req.headers);
-    headers.set('x-forwarded-host', headers.get('host') || '');
+    const oobHost = headers.get('host') || '';
+    headers.set('x-forwarded-host', oobHost);
+    headers.set('host', appHost);
     headers.set('x-forwarded-for', headers.get('x-forwarded-for') || req.socket?.remoteAddress || '');
     headers.set('x-forwarded-proto', 'http');
-    // Remove hop-by-hop headers
     headers.delete('connection');
     headers.delete('keep-alive');
 
@@ -59,6 +62,7 @@ async function startHttpForwarder(config) {
         body,
         redirect: 'manual',
       });
+      console.log(`[HTTP] ${req.method} ${oobHost}${url.pathname} -> ${upstream.status}`);
       return new Response(upstream.body, {
         status: upstream.status,
         headers: upstream.headers,
@@ -212,11 +216,15 @@ async function main() {
   const server = dns2.createServer({
     udp: true,
     tcp: true,
-    handle: async (request, send) => {
+    handle: async (request, send, client) => {
       const query = request.questions[0];
       const response = Packet.createResponseFromRequest(request);
       const qtype = getQueryTypeName(query.type);
-      const ipAddress = request.address?.address || request.address || 'unknown';
+      // dns2 3rd arg: dgram rinfo (.address) for UDP, net.Socket (.remoteAddress) for TCP.
+      const isTcp = typeof client?.remoteAddress === 'string';
+      const resolverIp = ((isTcp ? client.remoteAddress : client?.address) || 'unknown')
+        .replace(/^::ffff:/, '');
+      const protocol = isTcp ? 'tcp' : 'udp';
 
       const result = planAnswer({
         fqdn: query.name,
@@ -225,7 +233,7 @@ async function main() {
         defaultIp: config.responseIp,
         secret: config.authToken,
         txtValue: 'Gotch4 DNS capture',
-        resolverIp: ipAddress,
+        resolverIp,
       });
 
       // Names outside our zone: NXDOMAIN. Do not log/forward unrelated noise.
@@ -264,14 +272,14 @@ async function main() {
 
       send(response);
 
-      console.log(`[DNS] ${query.name} (${qtype}) from ${ipAddress} -> ${result.summary}${result.strategy ? ` [${result.strategy}]` : ''}`);
+      console.log(`[DNS] ${query.name} (${qtype}) from ${resolverIp} -> ${result.summary}${result.strategy ? ` [${result.strategy}]` : ''}`);
 
       sendToWebhook(config, {
         query: query.name,
         type: qtype,
-        ipAddress,
+        ipAddress: resolverIp,
         timestamp: new Date().toISOString(),
-        protocol: request.address ? 'udp' : 'tcp',
+        protocol,
         token: result.token,
         answer: result.summary,
         strategy: result.strategy,
