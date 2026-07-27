@@ -38,6 +38,19 @@ app.use(
   })
 );
 
+// ── Global edge-cache policy ────────────────────────────────────────────────────
+// OOB capture + payload-hosting tool: a CDN must never cache a capture endpoint
+// (webhook/grab/ez) or a hosted file. CDNs cache by URL extension regardless of
+// Content-Type, so /grab/k/x.png or a hosted *.js would be edge-cached — silently
+// dropping repeat captures or serving a stale payload. no-store everywhere except
+// the immutable, content-hashed /assets/ bundle.
+app.use("/*", async (c, next) => {
+  await next();
+  if (!c.req.path.startsWith("/assets/")) {
+    c.header("Cache-Control", "no-store");
+  }
+});
+
 // ── Subdomain HTTP detection ───────────────────────────────────────────────────
 // If DNS detection is enabled and the Host header is a subdomain of dnsBaseDomain,
 // log the request as an HTTP event (fire-and-forget, doesn't alter the response).
@@ -346,9 +359,6 @@ app.get("/*", withPrisma, async (c, next) => {
     }
 
     c.header("Content-Type", file.mimetype);
-    // Cloudflare caches by file extension regardless of Content-Type; no-store
-    // stops stale/poisoned edge copies of hosted payloads. Do not remove.
-    c.header("Cache-Control", "no-store");
     return c.body(content);
   } catch (error) {
     console.error("Error serving file:", error);
@@ -356,15 +366,7 @@ app.get("/*", withPrisma, async (c, next) => {
   }
 });
 
-// SPA fallback — serve index.html for client-side routes.
-// no-store: an unmapped *.js/*.css URL lands on this HTML fallback; without it a
-// CDN caches the HTML under that asset URL and shadows a real payload hosted there later.
-app.get('/*', serveStatic({
-  path: 'index.html',
-  root: './public',
-  onFound: (_path, c) => {
-    c.header('Cache-Control', 'no-store');
-  },
-}));
+// SPA fallback — serve index.html for client-side routes
+app.get('/*', serveStatic({ path: 'index.html', root: './public' }));
 
 export default app;
