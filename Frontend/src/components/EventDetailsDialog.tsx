@@ -47,7 +47,7 @@ export function EventDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[85dvh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Event Details #{event.id}</DialogTitle>
         </DialogHeader>

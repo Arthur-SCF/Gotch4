@@ -692,7 +692,7 @@ function FilesPage() {
                 New File
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New File</DialogTitle>
               </DialogHeader>

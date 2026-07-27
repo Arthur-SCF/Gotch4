@@ -404,7 +404,7 @@ function ProgramsPage() {
                 New Program
               </Button>
             </DialogTrigger>
-          <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl">
+          <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Program</DialogTitle>
             </DialogHeader>
@@ -719,7 +719,7 @@ function ProgramsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Program</DialogTitle>
           </DialogHeader>
@@ -805,7 +805,7 @@ function ProgramsPage() {
       {/* Details Drawer */}
       <Drawer open={isDetailOpen} onOpenChange={setIsDetailOpen} direction={isMobile ? "bottom" : "right"}>
         <DrawerContent
-          className="h-full max-h-[96vh]"
+          className="h-full max-h-[96dvh]"
           resizable={!isMobile}
           defaultWidth={40}
           minWidth={20}
@@ -1041,7 +1041,7 @@ function ProgramsPage() {
 
       {/* Import from Platform Dialog */}
       <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Import from {importPlatform.charAt(0).toUpperCase() + importPlatform.slice(1)}

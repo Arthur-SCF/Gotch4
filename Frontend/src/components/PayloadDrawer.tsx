@@ -201,11 +201,11 @@ export default function PayloadDrawer({
   return (
     <>
       <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DrawerContent className="max-w-5xl mx-auto h-[90vh] flex flex-col">
+        <DrawerContent className="max-w-5xl mx-auto h-[90dvh] max-h-[90dvh] flex flex-col">
           <DrawerHeader className="border-b pb-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <DrawerTitle className="text-2xl">{payload.name}</DrawerTitle>
+                <DrawerTitle className="text-xl sm:text-2xl break-words">{payload.name}</DrawerTitle>
                 {payload.category && (
                   <div className="flex items-center gap-2 mt-2">
                     {payload.category.color && (
@@ -251,7 +251,7 @@ export default function PayloadDrawer({
             </div>
           </DrawerHeader>
 
-          <div className="flex-1 overflow-hidden p-6">
+          <div className="flex-1 overflow-hidden p-4 sm:p-6">
             <Tabs defaultValue="content" className="h-full flex flex-col">
               <TabsList className="mb-4">
                 <TabsTrigger value="content">Content</TabsTrigger>

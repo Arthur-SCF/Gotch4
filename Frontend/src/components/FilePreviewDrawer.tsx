@@ -135,7 +135,7 @@ export function FilePreviewDrawer({
   return (
     <Drawer open={open} onOpenChange={onClose} direction={isMobile ? "bottom" : "right"}>
       <DrawerContent
-        className="h-full max-h-[96vh]"
+        className="h-full max-h-[96dvh]"
         resizable={!isMobile}
         defaultWidth={50}
         minWidth={30}
@@ -159,7 +159,7 @@ export function FilePreviewDrawer({
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-hidden px-4 pb-4 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-4">
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-4">
             <Button
@@ -274,7 +274,7 @@ export function FilePreviewDrawer({
           />
 
           {/* Tabs for Content and Notes */}
-          <Tabs defaultValue="content" className="flex-1 flex flex-col overflow-hidden">
+          <Tabs defaultValue="content" className="flex flex-col">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="notes">
@@ -283,19 +283,19 @@ export function FilePreviewDrawer({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="content" className="flex-1 overflow-hidden flex flex-col mt-4">
+            <TabsContent value="content" className="mt-4 flex flex-col">
               {isEditing ? (
                 <Textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="flex-1 resize-none font-mono text-sm"
+                  className="min-h-[50vh] resize-none font-mono text-sm"
                 />
               ) : isLoading ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex items-center justify-center min-h-[30vh]">
                   <p className="text-muted-foreground">Loading...</p>
                 </div>
               ) : canShowPreview ? (
-                <div className="flex-1 overflow-auto rounded-md border">
+                <div className="max-h-[60vh] overflow-auto rounded-md border">
                   <SyntaxHighlighter
                     language={language}
                     style={vscDarkPlus}
@@ -310,7 +310,7 @@ export function FilePreviewDrawer({
                   </SyntaxHighlighter>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full border rounded-md">
+                <div className="flex items-center justify-center min-h-[30vh] border rounded-md">
                   <p className="text-muted-foreground text-sm">
                     Preview not available for this file type
                   </p>
@@ -318,7 +318,7 @@ export function FilePreviewDrawer({
               )}
             </TabsContent>
 
-            <TabsContent value="notes" className="flex-1 overflow-auto mt-4">
+            <TabsContent value="notes" className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium">File Notes</div>
                 {!isEditingNotes ? (

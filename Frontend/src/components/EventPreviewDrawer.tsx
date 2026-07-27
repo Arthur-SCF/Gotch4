@@ -266,7 +266,7 @@ export function EventPreviewDrawer({
   return (
     <Drawer open={open} onOpenChange={onClose} direction={isMobile ? "bottom" : "right"}>
       <DrawerContent
-        className="h-full max-h-[96vh]"
+        className="h-full max-h-[96dvh]"
         resizable={!isMobile}
         defaultWidth={50}
         minWidth={30}
@@ -291,7 +291,7 @@ export function EventPreviewDrawer({
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-hidden px-4 pb-4 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-4">
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-4">
             <Button size="sm" variant="outline" onClick={copyUrl}>
@@ -366,7 +366,7 @@ export function EventPreviewDrawer({
           />
 
           {/* Tabs for Details */}
-          <Tabs defaultValue="headers" className="flex-1 flex flex-col overflow-hidden">
+          <Tabs defaultValue="headers" className="flex flex-col">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="headers">Headers</TabsTrigger>
               <TabsTrigger value="body">Body</TabsTrigger>
@@ -378,7 +378,7 @@ export function EventPreviewDrawer({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="headers" className="flex-1 overflow-auto mt-4">
+            <TabsContent value="headers" className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium">Request Headers</div>
                 <Button size="sm" variant="ghost" onClick={copyHeaders}>
@@ -402,7 +402,7 @@ export function EventPreviewDrawer({
               </SyntaxHighlighter>
             </TabsContent>
 
-            <TabsContent value="body" className="flex-1 overflow-auto mt-4">
+            <TabsContent value="body" className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium">Request Body</div>
                 <Button size="sm" variant="ghost" onClick={copyBody}>
@@ -438,7 +438,7 @@ export function EventPreviewDrawer({
               )}
             </TabsContent>
 
-            <TabsContent value="query" className="flex-1 overflow-auto mt-4">
+            <TabsContent value="query" className="mt-4">
               <div className="text-sm font-medium mb-2">Query Parameters</div>
               {formatQueryParams() ? (
                 <SyntaxHighlighter
@@ -459,7 +459,7 @@ export function EventPreviewDrawer({
               )}
             </TabsContent>
 
-            <TabsContent value="cookies" className="flex-1 overflow-auto mt-4">
+            <TabsContent value="cookies" className="mt-4">
               <div className="text-sm font-medium mb-2">Cookies</div>
               <SyntaxHighlighter
                 language="json"
@@ -474,7 +474,7 @@ export function EventPreviewDrawer({
               </SyntaxHighlighter>
             </TabsContent>
 
-            <TabsContent value="notes" className="flex-1 overflow-auto mt-4">
+            <TabsContent value="notes" className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium">Event Notes</div>
                 {!isEditingNotes ? (

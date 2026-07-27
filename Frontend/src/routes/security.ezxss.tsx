@@ -670,7 +670,7 @@ function CaptureDetail({
 
       {/* DOM preview — sandboxed iframe, no scripts can execute */}
       <Dialog open={domPreviewOpen} onOpenChange={setDomPreviewOpen}>
-        <DialogContent className="max-w-5xl w-full h-[80vh] flex flex-col p-0">
+        <DialogContent className="max-w-5xl w-full h-[85dvh] flex flex-col p-0">
           <DialogHeader className="px-5 pt-4 pb-3 border-b shrink-0">
             <DialogTitle className="text-sm font-medium flex items-center gap-2">
               <IconCode className="size-4 text-muted-foreground" />
