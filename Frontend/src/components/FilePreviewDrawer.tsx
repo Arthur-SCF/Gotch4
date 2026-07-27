@@ -17,8 +17,7 @@ import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/apiFetch";
 import { getFileTypeInfo, canPreview, getLanguageForHighlight } from "@/lib/utils/fileTypes";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "@/components/CodeBlock";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProgramLinkSelector } from "@/components/ProgramLinkSelector";
 import { useCopyButton } from "@/hooks/useCopyButton";
@@ -295,20 +294,15 @@ export function FilePreviewDrawer({
                   <p className="text-muted-foreground">Loading...</p>
                 </div>
               ) : canShowPreview ? (
-                <div className="max-h-[60vh] overflow-auto rounded-md border">
-                  <SyntaxHighlighter
-                    language={language}
-                    style={vscDarkPlus}
-                    showLineNumbers
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: "0.375rem",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    {content}
-                  </SyntaxHighlighter>
-                </div>
+                <CodeBlock
+                  code={content}
+                  language={language}
+                  showLineNumbers
+                  maxHeight="60vh"
+                  fontSize="0.875rem"
+                  copyId="file-content"
+                  copyLabel="file content"
+                />
               ) : (
                 <div className="flex items-center justify-center min-h-[30vh] border rounded-md">
                   <p className="text-muted-foreground text-sm">

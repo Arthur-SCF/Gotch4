@@ -1,7 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "@/components/CodeBlock";
 
 interface MarkdownRendererProps {
   content: string;
@@ -81,25 +80,23 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             language = languageMap[language] || language;
 
             return !inline && language ? (
-              <div className="my-4 rounded-lg overflow-hidden border border-border shadow-lg">
-                <div className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black px-4 py-2 flex items-center justify-between border-b border-gray-700">
-                  <span className="text-xs text-gray-300 font-mono uppercase tracking-wider">
+              <div className="my-4 overflow-hidden rounded-lg border shadow-sm">
+                <div className="flex items-center justify-between border-b bg-muted px-4 py-2">
+                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                     {match ? match[1] : 'code'}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground/70">
                     Bug Bounty PoC
                   </span>
                 </div>
-                <SyntaxHighlighter
-                  style={oneDark}
+                <CodeBlock
+                  code={String(children).replace(/\n$/, "")}
                   language={language}
-                  PreTag="div"
-                  className="!mt-0 !mb-0 !bg-gray-950"
                   showLineNumbers
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
+                  className="rounded-none border-0"
+                  copyId="md-code"
+                  copyLabel="code"
+                />
               </div>
             ) : (
               <code
@@ -114,8 +111,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           // Pre blocks (for code without language)
           pre: ({ children }) => {
             return (
-              <div className="my-4 rounded-lg overflow-hidden border border-border">
-                <pre className="bg-gray-900 text-gray-100 p-4 overflow-x-auto text-sm font-mono">
+              <div className="my-4 overflow-hidden rounded-lg border">
+                <pre className="overflow-x-auto bg-muted p-4 text-sm font-mono">
                   {children}
                 </pre>
               </div>

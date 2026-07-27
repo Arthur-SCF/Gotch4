@@ -13,8 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { IconCopy, IconTrash, IconCheck, IconExternalLink, IconNote, IconEdit, IconX, IconWorld, IconWorldWww, IconCode, IconRoute, IconHash } from "@tabler/icons-react";
 import { getMethodColor } from "@/lib/utils/colors";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "@/components/CodeBlock";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProgramLinkSelector } from "@/components/ProgramLinkSelector";
 import { useCopyButton } from "@/hooks/useCopyButton";
@@ -389,17 +388,7 @@ export function EventPreviewDrawer({
                   )}
                 </Button>
               </div>
-              <SyntaxHighlighter
-                language="json"
-                style={vscDarkPlus}
-                customStyle={{
-                  margin: 0,
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                }}
-              >
-                {formatHeaders()}
-              </SyntaxHighlighter>
+              <CodeBlock code={formatHeaders()} language="json" fontSize="0.875rem" />
             </TabsContent>
 
             <TabsContent value="body" className="mt-4">
@@ -414,23 +403,11 @@ export function EventPreviewDrawer({
                 </Button>
               </div>
               {event.body ? (
-                isJsonContent(event.body) ? (
-                  <SyntaxHighlighter
-                    language="json"
-                    style={vscDarkPlus}
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: "0.375rem",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    {formatBody()}
-                  </SyntaxHighlighter>
-                ) : (
-                  <pre className="text-sm font-mono bg-muted p-4 rounded-md overflow-auto">
-                    {event.body}
-                  </pre>
-                )
+                <CodeBlock
+                  code={isJsonContent(event.body) ? formatBody() : event.body}
+                  language={isJsonContent(event.body) ? "json" : "text"}
+                  fontSize="0.875rem"
+                />
               ) : (
                 <div className="text-sm text-muted-foreground border rounded p-4 text-center">
                   No request body
@@ -441,17 +418,7 @@ export function EventPreviewDrawer({
             <TabsContent value="query" className="mt-4">
               <div className="text-sm font-medium mb-2">Query Parameters</div>
               {formatQueryParams() ? (
-                <SyntaxHighlighter
-                  language="json"
-                  style={vscDarkPlus}
-                  customStyle={{
-                    margin: 0,
-                    borderRadius: "0.375rem",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  {formatQueryParams()}
-                </SyntaxHighlighter>
+                <CodeBlock code={formatQueryParams()} language="json" fontSize="0.875rem" copyId="query" copyLabel="query params" />
               ) : (
                 <div className="text-sm text-muted-foreground border rounded p-4 text-center">
                   No query parameters
@@ -461,17 +428,7 @@ export function EventPreviewDrawer({
 
             <TabsContent value="cookies" className="mt-4">
               <div className="text-sm font-medium mb-2">Cookies</div>
-              <SyntaxHighlighter
-                language="json"
-                style={vscDarkPlus}
-                customStyle={{
-                  margin: 0,
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                }}
-              >
-                {formatCookies()}
-              </SyntaxHighlighter>
+              <CodeBlock code={formatCookies()} language="json" fontSize="0.875rem" copyId="cookies" copyLabel="cookies" />
             </TabsContent>
 
             <TabsContent value="notes" className="mt-4">

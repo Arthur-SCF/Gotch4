@@ -19,8 +19,7 @@ import {
   IconStarFilled,
   IconCheck,
 } from "@tabler/icons-react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "@/components/CodeBlock";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import PayloadForm from "@/components/PayloadForm";
 import {
@@ -311,17 +310,7 @@ export default function PayloadDrawer({
                     {/* Raw Content */}
                     <div>
                       <h4 className="text-sm font-semibold mb-2">Raw Content</h4>
-                      <SyntaxHighlighter
-                        language="javascript"
-                        style={oneDark}
-                        customStyle={{
-                          borderRadius: "0.5rem",
-                          padding: "1rem",
-                        }}
-                        showLineNumbers
-                      >
-                        {payload.content}
-                      </SyntaxHighlighter>
+                      <CodeBlock code={payload.content} language="javascript" showLineNumbers />
                     </div>
 
                     {/* Variables Section - Only show if variables detected */}
@@ -368,17 +357,7 @@ export default function PayloadDrawer({
                               <span className="text-primary">→</span>
                               Processed Preview
                             </h4>
-                            <SyntaxHighlighter
-                              language="javascript"
-                              style={oneDark}
-                              customStyle={{
-                                borderRadius: "0.5rem",
-                                padding: "1rem",
-                              }}
-                              showLineNumbers
-                            >
-                              {processedContent}
-                            </SyntaxHighlighter>
+                            <CodeBlock code={processedContent} language="javascript" showLineNumbers />
                           </div>
                         )}
                       </div>

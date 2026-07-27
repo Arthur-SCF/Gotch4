@@ -7,8 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { getMethodColor } from "@/lib/utils/colors";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "@/components/CodeBlock";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
@@ -76,35 +75,11 @@ export function EventComparisonDialog({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">Event 1</div>
-            <div className="border rounded-md overflow-hidden">
-              <SyntaxHighlighter
-                language={language}
-                style={vscDarkPlus}
-                customStyle={{
-                  margin: 0,
-                  fontSize: "0.75rem",
-                  maxHeight: "200px",
-                }}
-              >
-                {value1}
-              </SyntaxHighlighter>
-            </div>
+            <CodeBlock code={value1} language={language} fontSize="0.75rem" maxHeight="200px" copyId="cmp1" copyLabel={title} />
           </div>
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">Event 2</div>
-            <div className="border rounded-md overflow-hidden">
-              <SyntaxHighlighter
-                language={language}
-                style={vscDarkPlus}
-                customStyle={{
-                  margin: 0,
-                  fontSize: "0.75rem",
-                  maxHeight: "200px",
-                }}
-              >
-                {value2}
-              </SyntaxHighlighter>
-            </div>
+            <CodeBlock code={value2} language={language} fontSize="0.75rem" maxHeight="200px" copyId="cmp2" copyLabel={title} />
           </div>
         </div>
       </div>
