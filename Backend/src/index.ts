@@ -346,6 +346,9 @@ app.get("/*", withPrisma, async (c, next) => {
     }
 
     c.header("Content-Type", file.mimetype);
+    // Cloudflare caches by file extension regardless of Content-Type; no-store
+    // stops stale/poisoned edge copies of hosted payloads. Do not remove.
+    c.header("Cache-Control", "no-store");
     return c.body(content);
   } catch (error) {
     console.error("Error serving file:", error);
@@ -353,7 +356,15 @@ app.get("/*", withPrisma, async (c, next) => {
   }
 });
 
-// SPA fallback — serve index.html for client-side routes
-app.get('/*', serveStatic({ path: 'index.html', root: './public' }));
+// SPA fallback — serve index.html for client-side routes.
+// no-store: an unmapped *.js/*.css URL lands on this HTML fallback; without it a
+// CDN caches the HTML under that asset URL and shadows a real payload hosted there later.
+app.get('/*', serveStatic({
+  path: 'index.html',
+  root: './public',
+  onFound: (_path, c) => {
+    c.header('Cache-Control', 'no-store');
+  },
+}));
 
 export default app;
