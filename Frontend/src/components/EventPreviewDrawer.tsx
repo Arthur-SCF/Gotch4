@@ -167,7 +167,9 @@ export function EventPreviewDrawer({
       setNotes(event.notes || "");
       setIsEditingNotes(false);
     }
-  }, [event, open]);
+    // Key on id (not the whole event) so a live-data refetch doesn't wipe an in-progress edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id, open]);
 
   const handleSaveNotes = () => {
     onUpdateNotes(notes);

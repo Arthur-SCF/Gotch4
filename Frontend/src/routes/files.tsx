@@ -116,7 +116,7 @@ interface TemplateCategory {
 function FilesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isUploadMode, setIsUploadMode] = useState(true);
-  const [selectedFile, setSelectedFile] = useState<ApiFile | null>(null);
+  const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,6 +156,12 @@ function FilesPage() {
   });
 
   const files = (filesResponse?.data || []) as ApiFile[];
+
+  // Derived from live query data (not a click-time snapshot) so edits stay fresh everywhere.
+  const selectedFile = useMemo(
+    () => (selectedFileId == null ? null : files.find((f) => f.id === selectedFileId) ?? null),
+    [files, selectedFileId],
+  );
 
   // Fetch programs
   const { data: programsResponse } = useQuery({
@@ -395,7 +401,7 @@ function FilesPage() {
   };
 
   const openFilePreview = (file: ApiFile) => {
-    setSelectedFile(file);
+    setSelectedFileId(file.id);
     setIsPreviewOpen(true);
   };
 
@@ -1269,7 +1275,7 @@ function FilesPage() {
         open={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
-          setSelectedFile(null);
+          setSelectedFileId(null);
         }}
         onUpdate={handleFileUpdate}
         onLinkProgram={handleLinkProgram}

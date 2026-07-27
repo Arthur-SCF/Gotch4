@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,9 +120,9 @@ function ProgramsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
-  const [selectedProgramDetails, setSelectedProgramDetails] = useState<ProgramWithDetails | null>(null);
+  const [detailProgramId, setDetailProgramId] = useState<number | null>(null);
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [isFileContentOpen, setIsFileContentOpen] = useState(false);
   const [selectedFileContent, setSelectedFileContent] = useState<{ filename: string; content: string } | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
@@ -156,6 +156,25 @@ function ProgramsPage() {
   });
 
   const programs = (programsResponse?.data || []) as Program[];
+
+  // Program detail is a live query so the drawer reflects edits instantly (no stale snapshot).
+  const { data: selectedProgramDetails } = useQuery<ProgramWithDetails>({
+    queryKey: ["program", detailProgramId],
+    queryFn: async () => {
+      const res = await apiFetch(`${API_URL}/api/programs/${detailProgramId}`);
+      if (!res.ok) throw new Error("Failed to load program details");
+      return res.json();
+    },
+    enabled: isDetailOpen && detailProgramId != null,
+  });
+
+  const selectedEvent = useMemo(
+    () =>
+      selectedEventId == null
+        ? null
+        : selectedProgramDetails?.events.find((e: any) => e.id === selectedEventId) ?? null,
+    [selectedProgramDetails, selectedEventId],
+  );
 
   // Create program mutation
   const createMutation = useMutation({
@@ -261,6 +280,7 @@ function ProgramsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      queryClient.invalidateQueries({ queryKey: ["program"] });
       toast.success("Event linked to program successfully");
     },
     onError: () => {
@@ -295,19 +315,13 @@ function ProgramsPage() {
     setIsEditOpen(true);
   };
 
-  const viewProgramDetails = async (program: Program) => {
-    try {
-      const res = await apiFetch(`${API_URL}/api/programs/${program.id}`);
-      const details = await res.json();
-      setSelectedProgramDetails(details);
-      setIsDetailOpen(true);
-    } catch (error) {
-      toast.error("Failed to load program details");
-    }
+  const viewProgramDetails = (program: Program) => {
+    setDetailProgramId(program.id);
+    setIsDetailOpen(true);
   };
 
   const viewEventDetails = (event: any) => {
-    setSelectedEvent(event);
+    setSelectedEventId(event.id);
     setIsEventDetailOpen(true);
   };
 

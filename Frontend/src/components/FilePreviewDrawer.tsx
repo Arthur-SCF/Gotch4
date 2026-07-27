@@ -64,7 +64,9 @@ export function FilePreviewDrawer({
       setIsEditing(false);
       setIsEditingNotes(false);
     }
-  }, [file, open]);
+    // Key on id (not the whole file) so a live-data refetch doesn't wipe an in-progress edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file?.id, open]);
 
   const loadFileContent = async () => {
     if (!file) return;

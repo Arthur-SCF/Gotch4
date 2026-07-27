@@ -135,7 +135,7 @@ type GroupBy = "none" | "program" | "method" | "date";
 type DateRange = "all" | "today" | "yesterday" | "week" | "month" | "custom";
 
 function EventsPage() {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -178,6 +178,12 @@ function EventsPage() {
   });
 
   const events = (eventsResponse?.data || []) as Event[];
+
+  // Derived from live query data (not a click-time snapshot) so edits stay fresh everywhere.
+  const selectedEvent = useMemo(
+    () => (selectedEventId == null ? null : events.find((e) => e.id === selectedEventId) ?? null),
+    [events, selectedEventId],
+  );
 
   // ez XSS captures
   const { data: ezResponse } = useQuery({
@@ -393,7 +399,7 @@ function EventsPage() {
   };
 
   const openEventPreview = (event: Event) => {
-    setSelectedEvent(event);
+    setSelectedEventId(event.id);
     setIsPreviewOpen(true);
   };
 
@@ -408,7 +414,7 @@ function EventsPage() {
       deleteMutation.mutate(deleteEventId);
       if (selectedEvent?.id === deleteEventId) {
         setIsPreviewOpen(false);
-        setSelectedEvent(null);
+        setSelectedEventId(null);
       }
       setDeleteEventId(null);
     }
@@ -1551,7 +1557,7 @@ function EventsPage() {
         open={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
-          setSelectedEvent(null);
+          setSelectedEventId(null);
         }}
         onDelete={handleEventDelete}
         onLinkProgram={handleLinkProgram}
