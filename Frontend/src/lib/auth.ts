@@ -23,7 +23,31 @@ export async function getAccessToken(): Promise<string | null> {
   return user.access_token;
 }
 
+const REDIRECT_TS_KEY = "oidc:lastRedirectAt";
+const REDIRECT_COUNT_KEY = "oidc:redirectCount";
+const MAX_CONSECUTIVE_REDIRECTS = 3;
+const REDIRECT_STALE_MS = 15000;
+const REDIRECT_DEBOUNCE_MS = 2000;
+
+export function clearLoginLoopGuard(): void {
+  sessionStorage.removeItem(REDIRECT_TS_KEY);
+  sessionStorage.removeItem(REDIRECT_COUNT_KEY);
+}
+
 export async function login(): Promise<void> {
+  const now = Date.now();
+  const last = Number(sessionStorage.getItem(REDIRECT_TS_KEY) ?? 0);
+  let count = Number(sessionStorage.getItem(REDIRECT_COUNT_KEY) ?? 0);
+
+  if (now - last > REDIRECT_STALE_MS) count = 0; // stale — a fresh attempt
+  if (count >= MAX_CONSECUTIVE_REDIRECTS) {
+    console.error("[auth] login redirect loop-guard tripped — not redirecting again");
+    return;
+  }
+  if (now - last < REDIRECT_DEBOUNCE_MS) return; // a redirect is already in flight
+
+  sessionStorage.setItem(REDIRECT_TS_KEY, String(now));
+  sessionStorage.setItem(REDIRECT_COUNT_KEY, String(count + 1));
   await userManager.signinRedirect();
 }
 

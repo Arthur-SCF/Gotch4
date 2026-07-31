@@ -67,6 +67,8 @@ import { apiFetch } from "@/lib/apiFetch";
 import { getFileTypeInfo, getFileCategory } from "@/lib/utils/fileTypes";
 import { FileUploadZone } from "@/components/FileUploadZone";
 import { FilePreviewDrawer } from "@/components/FilePreviewDrawer";
+import { CustomHeadersEditor } from "@/components/CustomHeadersEditor";
+import { parseHeaders } from "@/lib/headerTemplates";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/files")({
@@ -83,6 +85,7 @@ interface ApiFile {
   notes: string | null;
   isPublic: boolean;
   detectHit: boolean;
+  customHeaders: Record<string, string> | null;
   programId: number | null;
   createdAt: string;
   updatedAt: string;
@@ -139,6 +142,7 @@ function FilesPage() {
   const [newUrlPath, setNewUrlPath] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newMimetype, setNewMimetype] = useState("");
+  const [newHeadersText, setNewHeadersText] = useState("");
 
   // Upload
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -191,7 +195,7 @@ function FilesPage() {
 
   // Create file mutation
   const createMutation = useMutation({
-    mutationFn: async (data: { filename: string; content: string; urlPath?: string; mimetype?: string }) => {
+    mutationFn: async (data: { filename: string; content: string; urlPath?: string; mimetype?: string; customHeaders?: Record<string, string> | null }) => {
       const res = await apiFetch(`${API_URL}/api/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -389,11 +393,35 @@ function FilesPage() {
     },
   });
 
+  // Update per-file custom response headers mutation
+  const updateHeadersMutation = useMutation({
+    mutationFn: async ({ fileId, customHeaders }: { fileId: number; customHeaders: Record<string, string> | null }) => {
+      const res = await apiFetch(`${API_URL}/api/files/${fileId}/headers`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customHeaders }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to update response headers");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      toast.success("Response headers updated");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   const resetForm = () => {
     setNewFilename("");
     setNewUrlPath("");
     setNewContent("");
     setNewMimetype("");
+    setNewHeadersText("");
     setUploadFiles([]);
     setIsUploadMode(true);
     setSelectedTemplateId("");
@@ -426,6 +454,12 @@ function FilesPage() {
   const handleUpdateVisibility = (isPublic: boolean) => {
     if (selectedFile) {
       updateVisibilityMutation.mutate({ fileId: selectedFile.id, isPublic });
+    }
+  };
+
+  const handleUpdateHeaders = (customHeaders: Record<string, string> | null) => {
+    if (selectedFile) {
+      updateHeadersMutation.mutate({ fileId: selectedFile.id, customHeaders });
     }
   };
 
@@ -867,6 +901,12 @@ function FilesPage() {
                               Override the Content-Type header served to clients
                             </p>
                           </div>
+                          <div>
+                            <Label className="text-sm">Custom Response Headers</Label>
+                            <div className="mt-1.5">
+                              <CustomHeadersEditor value={newHeadersText} onChange={setNewHeadersText} />
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -877,6 +917,10 @@ function FilesPage() {
                             content: newContent,
                             urlPath: newUrlPath || undefined,
                             mimetype: newMimetype || undefined,
+                            customHeaders: (() => {
+                              const h = parseHeaders(newHeadersText);
+                              return Object.keys(h).length > 0 ? h : undefined;
+                            })(),
                           })
                         }
                         disabled={!newFilename || !newContent || createMutation.isPending}
@@ -1281,6 +1325,7 @@ function FilesPage() {
         onLinkProgram={handleLinkProgram}
         onUpdateNotes={handleUpdateNotes}
         onUpdateVisibility={handleUpdateVisibility}
+        onUpdateHeaders={handleUpdateHeaders}
         programs={programs}
       />
 

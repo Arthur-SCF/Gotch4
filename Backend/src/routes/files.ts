@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import type { PrismaClient } from "../generated/prisma/client.ts";
+import { Prisma } from "../generated/prisma/client.ts";
 import withPrisma from "../lib/prisma.ts";
 import { minioClient, MINIO_BUCKET } from "../lib/minio.ts";
 import { getMimeType } from "../lib/utils.ts";
+import { validateCustomHeaders } from "../lib/customHeaders.ts";
 
 // Reserved route prefixes that must not be used as file URL paths.
 // Each entry must end with "/" so prefix matching is unambiguous
@@ -127,10 +129,15 @@ app.post("/", async (c) => {
   try {
     const prisma = c.get("prisma");
     const body = await c.req.json();
-    const { filename, content, urlPath, mimetype: mimetypeOverride } = body;
+    const { filename, content, urlPath, mimetype: mimetypeOverride, customHeaders } = body;
 
     if (!filename || content === undefined) {
       return c.json({ error: "Filename and content are required" }, 400);
+    }
+
+    const headersResult = validateCustomHeaders(customHeaders);
+    if (!headersResult.ok) {
+      return c.json({ error: headersResult.error }, 400);
     }
 
     // Default urlPath if not provided
@@ -178,6 +185,7 @@ app.post("/", async (c) => {
         mimetype,
         size,
         path: filename, // Store MinIO object key
+        customHeaders: headersResult.value ?? undefined,
       },
     });
 
@@ -194,10 +202,16 @@ app.put("/:id", async (c) => {
     const prisma = c.get("prisma");
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
-    const { content, urlPath, mimetype: mimetypeOverride } = body;
+    const { content, urlPath, mimetype: mimetypeOverride, customHeaders } = body;
+    const hasCustomHeaders = "customHeaders" in body;
 
-    if (content === undefined && urlPath === undefined && mimetypeOverride === undefined) {
-      return c.json({ error: "Content, urlPath, or mimetype is required" }, 400);
+    if (content === undefined && urlPath === undefined && mimetypeOverride === undefined && !hasCustomHeaders) {
+      return c.json({ error: "Content, urlPath, mimetype, or customHeaders is required" }, 400);
+    }
+
+    const headersResult = validateCustomHeaders(customHeaders);
+    if (!headersResult.ok) {
+      return c.json({ error: headersResult.error }, 400);
     }
 
     const file = await prisma.file.findUnique({ where: { id } });
@@ -257,6 +271,10 @@ app.put("/:id", async (c) => {
     // Update urlPath if provided
     if (urlPath) {
       updateData.urlPath = urlPath;
+    }
+
+    if (hasCustomHeaders) {
+      updateData.customHeaders = headersResult.value ?? Prisma.DbNull;
     }
 
     const updated = await prisma.file.update({
@@ -384,6 +402,31 @@ app.put("/:id/visibility", async (c) => {
   } catch (error) {
     console.error("Error updating file visibility:", error);
     return c.json({ error: "Failed to update file visibility" }, 500);
+  }
+});
+
+// Update per-file custom response headers (CORS/CORP/isolation escape hatch).
+// Body: { customHeaders: { "Header-Name": "value", ... } | null }  (null clears).
+app.put("/:id/headers", async (c) => {
+  try {
+    const prisma = c.get("prisma");
+    const id = parseInt(c.req.param("id"));
+    const body = await c.req.json();
+
+    const headersResult = validateCustomHeaders(body.customHeaders);
+    if (!headersResult.ok) {
+      return c.json({ error: headersResult.error }, 400);
+    }
+
+    const file = await prisma.file.update({
+      where: { id },
+      data: { customHeaders: headersResult.value ?? Prisma.DbNull },
+    });
+
+    return c.json(file);
+  } catch (error) {
+    console.error("Error updating file headers:", error);
+    return c.json({ error: "Failed to update file headers" }, 500);
   }
 });
 

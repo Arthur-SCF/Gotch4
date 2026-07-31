@@ -45,6 +45,7 @@ model File {
   notes      String?
   isPublic   Boolean  @default(true)
   detectHit  Boolean  @default(false)
+  customHeaders Json?  // Per-file response header overrides { "Header-Name": "value" }. Null = default CORS behavior.
   programId  Int?
   program    Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())

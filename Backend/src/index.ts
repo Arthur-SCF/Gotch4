@@ -4,6 +4,7 @@ import { serveStatic } from "hono/bun";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import withPrisma from "./lib/prisma.js";
 import { ensureBucketExists, minioClient, MINIO_BUCKET } from "./lib/minio.ts";
+import { sanitizeCustomHeaders } from "./lib/customHeaders.ts";
 
 type ContextWithPrisma = {
   Variables: {
@@ -346,19 +347,38 @@ app.get("/*", withPrisma, async (c, next) => {
     const content = Buffer.concat(chunks);
 
     const origin = c.req.header("origin");
-    if (file.isPublic) {
-      // Public files: wildcard CORS for cross-origin exploit delivery
-      c.header("Access-Control-Allow-Origin", origin ?? "*");
-      if (origin) c.header("Access-Control-Allow-Credentials", "true");
-    } else {
-      // Private files: CORS only for known dashboard origins
-      if (origin && allowedOrigins.includes(origin)) {
-        c.header("Access-Control-Allow-Origin", origin);
-        c.header("Access-Control-Allow-Credentials", "true");
+
+    // Per-file custom response headers — an escape hatch for special CORS/browser
+    // cases (Safari CORP, cross-origin isolation, Timing-Allow-Origin, …).
+    const custom = sanitizeCustomHeaders(file.customHeaders);
+    const customOverridesCors = Object.keys(custom).some(
+      (k) => k.toLowerCase() === "access-control-allow-origin"
+    );
+
+    // Skip the default Access-Control-Allow-Origin/-Credentials when the file
+    // defines its own ACAO — otherwise a custom "*" collides with the default
+    // credentialed reflection (browsers reject "*" combined with credentials).
+    if (!customOverridesCors) {
+      if (file.isPublic) {
+        // Public files: wildcard CORS for cross-origin exploit delivery
+        c.header("Access-Control-Allow-Origin", origin ?? "*");
+        if (origin) c.header("Access-Control-Allow-Credentials", "true");
+      } else {
+        // Private files: CORS only for known dashboard origins
+        if (origin && allowedOrigins.includes(origin)) {
+          c.header("Access-Control-Allow-Origin", origin);
+          c.header("Access-Control-Allow-Credentials", "true");
+        }
       }
     }
 
     c.header("Content-Type", file.mimetype);
+
+    // Apply custom headers last so they win over the defaults above.
+    for (const [name, value] of Object.entries(custom)) {
+      c.header(name, value);
+    }
+
     return c.body(content);
   } catch (error) {
     console.error("Error serving file:", error);

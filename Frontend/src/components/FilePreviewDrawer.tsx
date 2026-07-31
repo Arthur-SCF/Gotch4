@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IconDownload, IconCopy, IconEdit, IconX, IconCheck, IconNote, IconEye, IconEyeOff, IconExternalLink } from "@tabler/icons-react";
+import { IconDownload, IconCopy, IconEdit, IconX, IconCheck, IconNote, IconEye, IconEyeOff, IconExternalLink, IconWorld } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/apiFetch";
@@ -21,6 +21,8 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProgramLinkSelector } from "@/components/ProgramLinkSelector";
 import { useCopyButton } from "@/hooks/useCopyButton";
+import { CustomHeadersEditor } from "@/components/CustomHeadersEditor";
+import { parseHeaders, serializeHeaders } from "@/lib/headerTemplates";
 
 interface FilePreviewDrawerProps {
   file: any | null;
@@ -30,6 +32,7 @@ interface FilePreviewDrawerProps {
   onLinkProgram: (programId: number | null) => void;
   onUpdateNotes: (notes: string) => void;
   onUpdateVisibility: (isPublic: boolean) => void;
+  onUpdateHeaders: (customHeaders: Record<string, string> | null) => void;
   programs: any[];
 }
 
@@ -41,6 +44,7 @@ export function FilePreviewDrawer({
   onLinkProgram,
   onUpdateNotes,
   onUpdateVisibility,
+  onUpdateHeaders,
   programs,
 }: FilePreviewDrawerProps) {
   const [content, setContent] = useState("");
@@ -48,6 +52,7 @@ export function FilePreviewDrawer({
   const [mimetype, setMimetype] = useState("");
   const [notes, setNotes] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [headersText, setHeadersText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +66,7 @@ export function FilePreviewDrawer({
       setMimetype(file.mimetype);
       setNotes(file.notes || "");
       setIsPublic(file.isPublic);
+      setHeadersText(serializeHeaders(file.customHeaders));
       setIsEditing(false);
       setIsEditingNotes(false);
     }
@@ -119,6 +125,19 @@ export function FilePreviewDrawer({
     setIsPublic(newVisibility); // Optimistic update
     onUpdateVisibility(newVisibility);
   };
+
+  const handleSaveHeaders = () => {
+    const map = parseHeaders(headersText);
+    onUpdateHeaders(Object.keys(map).length === 0 ? null : map);
+  };
+
+  const handleResetHeaders = () => {
+    setHeadersText(serializeHeaders(file?.customHeaders));
+  };
+
+  const headersDirty = file
+    ? serializeHeaders(file.customHeaders) !== serializeHeaders(parseHeaders(headersText))
+    : false;
 
   if (!file) return null;
 
@@ -276,11 +295,15 @@ export function FilePreviewDrawer({
 
           {/* Tabs for Content and Notes */}
           <Tabs defaultValue="content" className="flex flex-col">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="notes">
                 <IconNote className="size-4 mr-1" />
                 Notes
+              </TabsTrigger>
+              <TabsTrigger value="headers">
+                <IconWorld className="size-4 mr-1" />
+                Headers
               </TabsTrigger>
             </TabsList>
 
@@ -356,6 +379,24 @@ export function FilePreviewDrawer({
                   No notes yet. Click the edit button to add notes about this file.
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="headers" className="mt-4 flex flex-col gap-3">
+              <CustomHeadersEditor value={headersText} onChange={setHeadersText} />
+
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleSaveHeaders} disabled={!headersDirty}>
+                  <IconCheck className="size-4 mr-1" />
+                  Save Headers
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleResetHeaders} disabled={!headersDirty}>
+                  <IconX className="size-4 mr-1" />
+                  Reset
+                </Button>
+                {headersDirty && (
+                  <span className="text-xs text-muted-foreground">Unsaved changes</span>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
